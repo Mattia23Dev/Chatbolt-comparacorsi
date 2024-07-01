@@ -2,7 +2,7 @@ const router = require('express').Router();
 const WhatsappCloudAPI = require('../utils/WhatsappCloudApi');
 const OpenAI = require('openai');
 const OpenAIChat = require('../utils/Openai');
-const { saveMessageOrChat, getChat, saveInfoLeadDb } = require('../utils/MongoDB');
+const { saveMessageOrChat, getChat, saveInfoLeadDb, getUser } = require('../utils/MongoDB');
 const { extractJSONFromOpenAIResponse } = require('../utils/UtilsFunction');
 const { format } = require('date-fns');
 require('dotenv').config();
@@ -111,6 +111,15 @@ const processQueue = async () => {
         `${message.sender === 'user' ? 'Utente' : 'Sara'}: ${message.content}`
       ).join('\n');
   
+      const existingLead = await getUser({numeroTelefono})
+      const existingUserInfo = existingLead ? `
+      Nome: ${existingLead.first_name || 'N/A'}
+      Cognome: ${existingLead.last_name || 'N/A'}
+      Email: ${existingLead.email || 'N/A'}
+      Sommario: ${existingLead.conversation_summary || 'N/A'}
+      Data appuntamento: ${existingLead.appointment_date || 'N/A'}
+    ` : 'Nessuna informazione utente esistente trovata';
+
       const customPromptSave = `
         Messaggi precedenti:
         ${messagesContent}
@@ -135,6 +144,8 @@ const processQueue = async () => {
       `;
   
       const customPrompt = `
+        Informazioni sull'utente già presenti:
+        ${existingUserInfo}
         Messaggi precedenti:
         ${messagesContent}
       `;

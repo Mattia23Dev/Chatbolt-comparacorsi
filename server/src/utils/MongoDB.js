@@ -54,6 +54,22 @@ exports.getChat = async ({numeroTelefono}) => {
   }
 }
 
+exports.getUser = async ({numeroTelefono}) => {
+
+  if (!numeroTelefono) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    let lead = await Lead.findOne({ numeroTelefono });
+
+    return lead
+  } catch (error) {
+    console.error('Error saving message:', error);
+    return 'error'
+  }
+}
+
 exports.saveInfoLeadDb = async ({ 
   numeroTelefono, 
   first_name, 
