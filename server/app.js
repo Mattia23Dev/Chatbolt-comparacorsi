@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 app.use(express.json());
 //ssh -p 443 -R0:localhost:9000 -L4300:localhost:4300 qr@a.pinggy.io
+
 const connectToMongoDB = async () => {
     try {
         await mongoose.connect(process.env.DB_URL, {
