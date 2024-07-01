@@ -4,6 +4,7 @@ const OpenAI = require('openai');
 const OpenAIChat = require('../utils/Openai');
 const { saveMessageOrChat, getChat, saveInfoLeadDb } = require('../utils/MongoDB');
 const { extractJSONFromOpenAIResponse } = require('../utils/UtilsFunction');
+const { format } = require('date-fns');
 require('dotenv').config();
 const sistemaPromptIniziale = `
 Sei Sara, assistente dei clienti di Comparacorsi.
@@ -71,185 +72,155 @@ Analizza la conversazione contenuta nella variabile {{messagiSalvati}}. Il tuo c
 
 Salva tutte queste informazioni in Ai trigger, associandole al numero di telefono del cliente.
 `;
+
+const getFormattedDate = () => {
+    const now = new Date();
+    return format(now, 'dd-MM-yyyy HH:mm');
+  };
+
 const Openai = new OpenAIChat(process.env.OPENAI_API_KEY, "gpt-4o")
-const messageQueue = [];
+let messageQueue = [];
+let debounceTimer = null;
 let isProcessing = false;
-let globalTimer = null;
+let userInfo = {};
 
 const processQueue = async () => {
     if (isProcessing || messageQueue.length === 0) return;
     isProcessing = true;
-
-    const messages = [...messageQueue];
-    messageQueue.length = 0; // Svuota la coda
-
-    // Elabora i messaggi qui...
-    // (Il tuo codice esistente per l'elaborazione dei messaggi)
-
+  
+    const currentMessages = [...messageQueue];
+    messageQueue = []; // Svuota la coda globale
+  
+    const messagesByPhone = {};
+    currentMessages.forEach(msg => {
+      if (!messagesByPhone[msg.numeroTelefono]) {
+        messagesByPhone[msg.numeroTelefono] = [];
+      }
+      messagesByPhone[msg.numeroTelefono].push(msg);
+    });
+  
+    for (const [numeroTelefono, messages] of Object.entries(messagesByPhone)) {
+      const existingChat = await getChat({ numeroTelefono });
+      let messaggiSalvati = existingChat && existingChat.messages ? existingChat.messages : [];
+  
+      messages.forEach(msg => {
+        messaggiSalvati.push({ sender: 'user', content: msg.content });
+      });
+  
+      const messagesContent = messaggiSalvati.map(message => 
+        `${message.sender === 'user' ? 'Utente' : 'Sara'}: ${message.content}`
+      ).join('\n');
+  
+      const customPromptSave = `
+        Messaggi precedenti:
+        ${messagesContent}
+  
+        Analizza la conversazione e estrai le seguenti informazioni:
+        1. Nome dell'utente
+        2. Cognome dell'utente
+        3. Email dell'utente
+        4. Riassunto della conversazione (massimo 10 parole)
+        5. Data e ora preferita per l'appuntamento (se menzionata)
+  
+        Per la data e l'ora dell'appuntamento, Oggi è: ${getFormattedDate()}:
+            - Se viene menzionata una data specifica, convertila nel formato DD-MM-YYYY HH:mm
+            - Se viene menzionato "domani", usa la data di domani nel formato DD-MM-YYYY
+            - Se viene menzionato un giorno della settimana (es. "lunedì prossimo"), calcola la data del prossimo giorno corrispondente
+  
+        Fornisci le informazioni estratte nel seguente formato JSON, senza alcun testo aggiuntivo o formattazione:
+        {"first_name":"","last_name":"","email":"","conversation_summary":"","appointment_date":""}
+  
+        Assicurati di riempire i campi solo con le informazioni disponibili, lasciando vuoti quelli per cui non ci sono informazioni.
+        Per il campo appointment_date, usa sempre il formato DD-MM-YYYY HH:mm.
+      `;
+  
+      const customPrompt = `
+        Messaggi precedenti:
+        ${messagesContent}
+      `;
+  
+      const replyToUser = await Openai.getOpenAIResponse(customPrompt, sistemaPromptIniziale);
+      const openAIResponse = await Openai.saveInfoLead(customPromptSave, promptSalvaInfo);
+      const extractedInfo = await extractJSONFromOpenAIResponse(openAIResponse);
+      console.log(extractedInfo);
+  
+      if (!userInfo[numeroTelefono]) {
+        userInfo[numeroTelefono] = {
+          numeroTelefono: numeroTelefono
+        };
+      }
+  
+      messaggiSalvati.push({ sender: 'bot', content: replyToUser });
+  
+      for (const msg of messages) {
+        await saveMessageOrChat({
+          userId: '1',
+          leadId: '10',
+          numeroTelefono: numeroTelefono,
+          content: msg.content,
+          sender: 'user'
+        });
+      }
+      await saveMessageOrChat({
+        userId: '1',
+        leadId: '10',
+        numeroTelefono: numeroTelefono,
+        content: replyToUser,
+        sender: 'bot'
+      });
+  
+      Object.assign(userInfo[numeroTelefono], extractedInfo);
+      try {
+        const savedLead = await saveInfoLeadDb(userInfo[numeroTelefono]);
+        console.log('Informazioni del lead salvate/aggiornate:', savedLead);
+      } catch (error) {
+        console.error('Errore nel salvare le informazioni del lead:', error);
+      }
+      console.log(userInfo)
+      // Invia una sola risposta cumulativa
+      messages[0].sendTextMessage(replyToUser);
+    }
+  
     isProcessing = false;
     if (messageQueue.length > 0) {
-        // Se sono arrivati nuovi messaggi durante l'elaborazione, riavvia il timer
-        resetTimer();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(processQueue, 20000);
     }
-};
-
-const resetTimer = () => {
-    if (globalTimer) {
-        clearTimeout(globalTimer);
-    }
-    globalTimer = setTimeout(processQueue, 20000);
-};
+  };
 
 module.exports = router.post('/', async (req, res) => {
     try {
         const data = req.body;
-        let messaggiSalvati = [];
-        let messageQueue = [];
-        let isProcessing = false;
-        let debounceTimer = null;
-        let userInfo = {};
 
         if (data.object) {
             // Checking If there is a new message
             const isNewMessage = data.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
             if (isNewMessage) {
                 const Whatsapp = new WhatsappCloudAPI({
-                    data,
-                    graphApiVersion: 'v20.0',
+                  data,
+                  graphApiVersion: 'v20.0',
                 });
         
                 const numeroTelefono = Whatsapp.getRecipientPhoneNumber();
                 const messageId = Whatsapp.getMessage().id;
         
                 if (Whatsapp.getMessage().type === 'text') {
-                    const messageBody = Whatsapp.getMessage().text?.body || '';
+                  const messageBody = Whatsapp.getMessage().text?.body || '';
         
-                    // Aggiungi il messaggio alla coda
-                    messageQueue.push({
-                        id: messageId,
-                        numeroTelefono: numeroTelefono,
-                        content: messageBody
-                    });
+                  messageQueue.push({
+                    id: messageId,
+                    numeroTelefono: numeroTelefono,
+                    content: messageBody,
+                    sendTextMessage: (reply) => Whatsapp.sendTextMessage(reply)
+                  });
         
-                    // Funzione per processare la coda
-                    const processQueue = async () => {
-                        if (isProcessing || messageQueue.length === 0) return;
-                        isProcessing = true;
+                  if (debounceTimer) {
+                    clearTimeout(debounceTimer);
+                  }
         
-                        const currentMessages = [...messageQueue];
-                        messageQueue = []; // Svuota la coda globale
-        
-                        const messagesByPhone = {};
-                        currentMessages.forEach(msg => {
-                            if (!messagesByPhone[msg.numeroTelefono]) {
-                                messagesByPhone[msg.numeroTelefono] = [];
-                            }
-                            messagesByPhone[msg.numeroTelefono].push(msg);
-                        });
-        
-                        for (const [numeroTelefono, messages] of Object.entries(messagesByPhone)) {
-                            // Recupera la chat esistente
-                            const existingChat = await getChat({ numeroTelefono });
-                            let messaggiSalvati = existingChat && existingChat.messages ? existingChat.messages : [];
-        
-                            // Aggiungi tutti i messaggi in coda a messaggiSalvati
-                            messages.forEach(msg => {
-                                messaggiSalvati.push({ sender: 'user', content: msg.content });
-                            });
-        
-                            // Prepara il contenuto per OpenAI
-                            const messagesContent = messaggiSalvati.map(message => 
-                                `${message.sender === 'user' ? 'Utente' : 'Sara'}: ${message.content}`
-                            ).join('\n');
-
-                            const customPromptSave = `
-                            Messaggi precedenti:
-                            ${messagesContent}
-                
-                            Analizza la conversazione e estrai le seguenti informazioni:
-                            1. Nome dell'utente
-                            2. Cognome dell'utente
-                            3. Email dell'utente
-                            4. Riassunto della conversazione (massimo 10 parole)
-                            5. Data e ora preferita per l'appuntamento (se menzionata)
-                
-                            Per la data e l'ora dell'appuntamento:
-                                - Se viene menzionata una data specifica, convertila nel formato DD-MM-YYYY HH:mm
-                                - Se viene menzionato "domani", usa la data di domani nel formato DD-MM-YYYY
-                                - Se viene menzionato un giorno della settimana (es. "lunedì prossimo"), calcola la data del prossimo giorno corrispondente
-
-                            Fornisci le informazioni estratte nel seguente formato JSON, senza alcun testo aggiuntivo o formattazione:
-                            {"first_name":"","last_name":"","email":"","conversation_summary":"","appointment_date":""}
-
-                            Assicurati di riempire i campi solo con le informazioni disponibili, lasciando vuoti quelli per cui non ci sono informazioni.
-                            Per il campo appointment_date, usa sempre il formato DD-MM-YYYY HH:mm.
-                        `;
-        
-                            const customPrompt = `
-                                Messaggi precedenti:
-                                ${messagesContent}
-                            `;
-        
-                            // Ottieni la risposta da OpenAI
-                            const replyToUser = await Openai.getOpenAIResponse(customPrompt, sistemaPromptIniziale);
-                            const openAIResponse = await Openai.saveInfoLead(customPromptSave, promptSalvaInfo);
-                            const extractedInfo = extractJSONFromOpenAIResponse(openAIResponse);
-                            console.log(extractedInfo);
-
-                            if (!userInfo[numeroTelefono]) {
-                                userInfo[numeroTelefono] = {
-                                    numeroTelefono: numeroTelefono
-                                };
-                            }
-        
-                            messaggiSalvati.push({ sender: 'bot', content: replyToUser });
-        
-                            await saveMessageOrChat({
-                                userId: '1',
-                                leadId: '10',
-                                numeroTelefono: numeroTelefono,
-                                content: messageBody,
-                                sender: 'user'
-                            });
-                            Whatsapp.markMessageAsRead(Whatsapp.getMessage().id);
-        
-                            await saveMessageOrChat({
-                                userId: '1',
-                                leadId: '10',
-                                numeroTelefono: numeroTelefono,
-                                content: replyToUser,
-                                sender: 'bot'
-                            });
-
-                            Object.assign(userInfo[numeroTelefono], extractedInfo);
-                            try {
-                                const savedLead = await saveInfoLeadDb(userInfo[numeroTelefono]);
-                                console.log('Informazioni del lead salvate/aggiornate:', savedLead);
-                            } catch (error) {
-                                console.error('Errore nel salvare le informazioni del lead:', error);
-                            }
-        
-                            // Invia la risposta
-                            Whatsapp.sendTextMessage(replyToUser);
-                        }
-        
-                        isProcessing = false;
-                        if (messageQueue.length > 0) {
-                            // Se sono arrivati nuovi messaggi durante l'elaborazione, riavvia il timer
-                            if (debounceTimer) clearTimeout(debounceTimer);
-                            debounceTimer = setTimeout(processQueue, 20000);
-                        }
-                    };
-        
-                    // Resetta il timer di debounce
-                    if (debounceTimer) {
-                        clearTimeout(debounceTimer);
-                    }
-        
-                    // Imposta un nuovo timer di debounce
-                    debounceTimer = setTimeout(processQueue, 20000);
+                  debounceTimer = setTimeout(processQueue, 20000);
                 }
-            }
+              }
 
             res.status(200).send();
         }
