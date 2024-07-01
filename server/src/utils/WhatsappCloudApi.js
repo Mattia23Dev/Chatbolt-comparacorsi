@@ -1,12 +1,12 @@
 const axios = require('axios');
 const fs = require('fs');
 const FormData = require('form-data');
-
+require('dotenv').config();
 module.exports = class WhatsappCloudApi {
     constructor({ graphApiVersion, data }) {
 
         this.graphApiVersion = graphApiVersion;
-        this.bearerToken = "EAAL9O7Ga8xsBOxYTzcZAF6bVF2TGZAKnf0IB057jQMxZCtdEe9qnVNajqiuKWp1OrrXgAEEvXnrckx5dKv2CGUVOzZC7lwfUuVHZB2jILB75VD9Jhprx5qjW0ltCYaXBbsz3wuwAUZAei3pEBBCY2fX8S3Ul4p1nkCXCAXPtFRk1ZCQO0HAdXVcjpUh";
+        this.bearerToken = process.env.META_TOKEN;
         this.messagingProduct = 'whatsapp';
 
         this.senderBusinessPhoneId = data.entry[0].changes[0].value.metadata.phone_number_id;
