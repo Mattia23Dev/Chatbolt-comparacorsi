@@ -2,6 +2,7 @@ const router = require('express').Router();
 const WhatsappCloudAPI = require('../utils/WhatsappCloudApi');
 const OpenAI = require('openai');
 const OpenAIChat = require('../utils/Openai');
+const {sendTemplateMessage} = require('../utils/WhatsappCloudApi')
 const { saveMessageOrChat, getChat, saveInfoLeadDb, getUser } = require('../utils/MongoDB');
 const { extractJSONFromOpenAIResponse } = require('../utils/UtilsFunction');
 const { format } = require('date-fns');
@@ -113,7 +114,7 @@ const processQueue = async () => {
   
       const existingLead = await getUser({numeroTelefono})
       const existingUserInfo = existingLead ? `
-      Nome: ${existingLead.first_name || 'N/A'}
+      Nome: ${existingLead.first_name || messages[0].name}
       Cognome: ${existingLead.last_name || 'N/A'}
       Email: ${existingLead.email || 'N/A'}
       Sommario: ${existingLead.conversation_summary || 'N/A'}
@@ -144,8 +145,6 @@ const processQueue = async () => {
       `;
   
       const customPrompt = `
-        Informazioni sull'utente già presenti:
-        ${existingUserInfo}
         Messaggi precedenti:
         ${messagesContent}
       `;
@@ -211,15 +210,19 @@ module.exports = router.post('/', async (req, res) => {
                   data,
                   graphApiVersion: 'v20.0',
                 });
-        
+                
                 const numeroTelefono = Whatsapp.getRecipientPhoneNumber();
                 const messageId = Whatsapp.getMessage().id;
+                const name = Whatsapp.getRecipientName()
         
                 if (Whatsapp.getMessage().type === 'text') {
                   const messageBody = Whatsapp.getMessage().text?.body || '';
-        
+                  
+                  Whatsapp.getBusinessProfile(Whatsapp.getMessage().id)
+                  
                   messageQueue.push({
                     id: messageId,
+                    name: name,
                     numeroTelefono: numeroTelefono,
                     content: messageBody,
                     sendTextMessage: (reply) => Whatsapp.sendTextMessage(reply)
@@ -244,10 +247,13 @@ module.exports = router.post('/', async (req, res) => {
         res.status(500).send();
     }
 });
+const templateName = 'test_oubound';
+const languageCode = 'it';
+const parameters = [
+    { type: 'text', text: 'Daje' },
+];
 
-
-
-
+//sendTemplateMessage(templateName, languageCode, parameters)
 
 /* MESSAGGI INTERATTIVI
                 // We have received a quick reply message in response of button clicks

@@ -11,7 +11,7 @@ module.exports = class WhatsappCloudApi {
 
         this.senderBusinessPhoneId = data.entry[0].changes[0].value.metadata.phone_number_id;
         this.message = data.entry[0].changes[0].value.messages[0];
-        this.recipientName = data.entry[0].changes[0].value.contacts[0].profile.name;;
+        this.recipientName = data.entry[0].changes[0].value.contacts[0].profile.name;
         this.recipientPhoneNumber = this.message.from;
     }
 
@@ -85,6 +85,34 @@ module.exports = class WhatsappCloudApi {
             console.error(error.response.data);
         }
     }
+
+    async getBusinessProfile() {
+        try {
+          const response = await axios({
+            method: "GET",
+            url: `https://graph.facebook.com/v${this.graphApiVersion}/${this.senderBusinessPhoneId}/whatsapp_business_profile`,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.bearerToken}`
+            },
+            params: {
+              fields: 'about,address,description,email,profile_picture_url,websites,vertical'
+            }
+          });
+    
+          if (response.data && response.data.data && response.data.data.length > 0) {
+            const businessProfile = response.data.data[0];
+            console.log('Business Profile:', businessProfile.profile_picture_url);
+            return businessProfile;
+          } else {
+            console.log('No business profile found.');
+            return null;
+          }
+        } catch (error) {
+          console.error('Error fetching business profile:', error.response ? error.response.data : error.message);
+          return null;
+        }
+      }
 
     // Send a simple text message which also include a lists of buttons to a customer
     async sendButtonsMessage(messageText, buttonsList) {
@@ -341,3 +369,38 @@ module.exports = class WhatsappCloudApi {
         }
     }
 };
+
+module.exports.sendTemplateMessage = async (templateName, languageCode, parameters) => {
+    try {
+        const response = await axios({
+            method: 'POST',
+            //url: `https://graph.facebook.com/${this.graphApiVersion}/${this.senderBusinessPhoneId}/messages?access_token=${this.bearerToken}`,
+            url: `https://graph.facebook.com/v20.0/356948087500420/messages?access_token=${process.env.META_TOKEN}`,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data: {
+                messaging_product: 'whatsapp', //this.messagingProduct,
+                recipient_type: 'individual',
+                to: '393313869850' ,//this.recipientPhoneNumber,
+                type: 'template',
+                template: {
+                    name: templateName,
+                    language: {
+                        code: languageCode
+                    },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: parameters
+                        }
+                    ]
+                }
+            },
+        });
+        console.log('Message sent successfully:', response.data);
+    } catch (error) {
+        console.error('Error sending message:', error.response ? error.response.data : error.message);
+    }
+}
+

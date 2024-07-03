@@ -3,17 +3,22 @@ const {Schema} = mongoose;
 
 const chatSchema = new Schema({
   //userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  userId: { type: String, required: true },
-  leadId: { type: String, required: true },
+  userId: { type: String },
+  leadId: { type: String },
   messages: [
     {
-      content: { type: String, required: true },
-      sender: { type: String, required: true },
+      content: { type: String },
+      sender: { type: String },
       timestamp: { type: Date, default: Date.now }
     }
   ],
   createdAt: { type: Date, default: Date.now },
   numeroTelefono: {type: String, required: true},
+  first_name: {type: String },
+  last_name: {type: String },
+  email: {type: String },
+  conversation_summary: {type: String },
+  appointment_date: {type: String },
 });
 
 const Chat = mongoose.model('Chat', chatSchema);

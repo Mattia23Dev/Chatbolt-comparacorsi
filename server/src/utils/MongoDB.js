@@ -83,7 +83,7 @@ exports.saveInfoLeadDb = async ({
   }
 
   try {
-    let lead = await Lead.findOne({ numeroTelefono });
+    let lead = await Chat.findOne({ numeroTelefono });
 
     if (lead) {
       lead.first_name = first_name || lead.first_name;
@@ -94,7 +94,7 @@ exports.saveInfoLeadDb = async ({
 
       await lead.save();
     } else {
-      lead = new Lead({
+      lead = new Chat({
         numeroTelefono,
         first_name,
         last_name,
