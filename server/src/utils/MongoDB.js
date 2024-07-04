@@ -31,7 +31,7 @@ exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sen
   
       await chat.save();
   
-      return 'Message saved successfully'
+      return chat;
     } catch (error) {
       console.error('Error saving message:', error);
       return 'error'

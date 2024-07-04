@@ -6,6 +6,7 @@ const {sendTemplateMessage} = require('../utils/WhatsappCloudApi')
 const { saveMessageOrChat, getChat, saveInfoLeadDb, getUser } = require('../utils/MongoDB');
 const { extractJSONFromOpenAIResponse } = require('../utils/UtilsFunction');
 const { format } = require('date-fns');
+const { getIO } = require('../utils/WebSocket');
 require('dotenv').config();
 const sistemaPromptIniziale = `
 Sei Sara, assistente dei clienti di Comparacorsi.
@@ -86,6 +87,8 @@ let isProcessing = false;
 let userInfo = {};
 
 const processQueue = async () => {
+    const io = getIO();
+
     if (isProcessing || messageQueue.length === 0) return;
     isProcessing = true;
   
@@ -163,21 +166,25 @@ const processQueue = async () => {
       messaggiSalvati.push({ sender: 'bot', content: replyToUser });
   
       for (const msg of messages) {
-        await saveMessageOrChat({
+        const chat = await saveMessageOrChat({
           userId: '1',
           leadId: '10',
           numeroTelefono: numeroTelefono,
           content: msg.content,
           sender: 'user'
         });
+
+        io.emit('updateChat', chat);
       }
-      await saveMessageOrChat({
+      const chat = await saveMessageOrChat({
         userId: '1',
         leadId: '10',
         numeroTelefono: numeroTelefono,
         content: replyToUser,
         sender: 'bot'
       });
+
+      io.emit('updateChat', chat);
   
       Object.assign(userInfo[numeroTelefono], extractedInfo);
       try {
@@ -217,9 +224,7 @@ module.exports = router.post('/', async (req, res) => {
         
                 if (Whatsapp.getMessage().type === 'text') {
                   const messageBody = Whatsapp.getMessage().text?.body || '';
-                  
-                  Whatsapp.getBusinessProfile(Whatsapp.getMessage().id)
-                  
+                                    
                   messageQueue.push({
                     id: messageId,
                     name: name,
