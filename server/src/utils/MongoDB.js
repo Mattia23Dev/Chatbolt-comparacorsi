@@ -115,7 +115,7 @@ exports.saveInfoLeadDb = async ({
       const secondDbConnection = await this.connectToSecondDatabase();  
       const Lead = await createLeadModel(secondDbConnection);
   
-      const lead = await Lead.findOne({numeroTelefono: "393313869850"});
+      const lead = await Lead.findOne({numeroTelefono: numeroTelefono});
       if (lead){
         lead.appDate = appointment_date;
         lead.summary = conversation_summary;
