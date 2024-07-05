@@ -7,6 +7,9 @@ const { Server } = require('socket.io');
 const http = require('http');
 const cors = require('cors');
 const { init } = require('./src/utils/WebSocket.js');
+const { connectToSecondDatabase } = require('./src/utils/MongoDB.js');
+const initializeLeadModel = require('./src/models/lead.js');
+const createLeadModel = require('./src/models/lead.js');
 
 app.use(express.json());
 app.use(cors());

@@ -79,4 +79,25 @@ router.post('/sendWhatsappMessage', async (req, res) => {
   }
 })
 
+router.post('/get-lead-chat', async (req, res) => {
+  try {
+    const { numeroTelefono } = req.body;
+    
+    if (!numeroTelefono) {
+      return res.status(400).json({ error: 'numeroTelefono is required' });
+    }
+
+    const chat = await Chat.findOne({ numeroTelefono });
+
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    res.json({ chat });
+  } catch (error) {
+    console.error('Errore durante la ricerca della chat:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

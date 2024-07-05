@@ -117,7 +117,7 @@ const processQueue = async () => {
             content: msg.content,
             sender: 'user',
           });
-          
+
           io.emit('updateChat', chat);
         }
         continue;
@@ -211,7 +211,6 @@ const processQueue = async () => {
       } catch (error) {
         console.error('Errore nel salvare le informazioni del lead:', error);
       }
-      console.log(userInfo)
       // Invia una sola risposta cumulativa
       messages[0].sendTextMessage(replyToUser);
     }

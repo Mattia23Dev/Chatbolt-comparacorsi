@@ -1,5 +1,8 @@
+const mongoose = require('mongoose');
+require('dotenv').config();
 const Chat = require("../models/chat");
 const Lead = require("../models/lead");
+const createLeadModel = require('../models/lead');
 
 exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sender, manual}) => {
 
@@ -108,9 +111,38 @@ exports.saveInfoLeadDb = async ({
       await lead.save();
     }
 
+    if (appointment_date && appointment_date?.trim() !== ""){
+      const secondDbConnection = await this.connectToSecondDatabase();  
+      const Lead = await createLeadModel(secondDbConnection);
+  
+      const lead = await Lead.findOne({numeroTelefono: "393313869850"});
+      if (lead){
+        lead.appDate = appointment_date;
+        lead.summary = conversation_summary;
+        if (email && email?.trim() !== ""){
+          lead.email = email;
+        }
+        await lead.save()
+      }
+    }
+
     return lead;
   } catch (error) {
     console.error('Errore nel salvare/aggiornare le informazioni del lead:', error);
     throw error;
   }
+};
+
+exports.connectToSecondDatabase = async () => {
+  const secondDbConnection = mongoose.createConnection(process.env.DB_URL_LEADSYSTEM, { useNewUrlParser: true, useUnifiedTopology: true });
+
+  secondDbConnection.on('connected', () => {
+    console.log('Connesso al secondo database');
+  });
+
+  secondDbConnection.on('error', error => {
+    console.error('Errore di connessione al secondo database:', error);
+  });
+
+  return secondDbConnection
 };
