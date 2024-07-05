@@ -9,7 +9,8 @@ const chatSchema = new Schema({
     {
       content: { type: String },
       sender: { type: String },
-      timestamp: { type: Date, default: Date.now }
+      timestamp: { type: Date, default: Date.now },
+      manual: { type: Boolean, default: false}
     }
   ],
   createdAt: { type: Date, default: Date.now },
@@ -19,6 +20,8 @@ const chatSchema = new Schema({
   email: {type: String },
   conversation_summary: {type: String },
   appointment_date: {type: String },
+  active: {type: Boolean, default: true},
+  favorite: {type: Boolean, default: false},
 });
 
 const Chat = mongoose.model('Chat', chatSchema);

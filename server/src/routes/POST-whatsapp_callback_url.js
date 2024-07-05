@@ -93,7 +93,7 @@ const processQueue = async () => {
     isProcessing = true;
   
     const currentMessages = [...messageQueue];
-    messageQueue = []; // Svuota la coda globale
+    messageQueue = [];
   
     const messagesByPhone = {};
     currentMessages.forEach(msg => {
@@ -105,6 +105,24 @@ const processQueue = async () => {
   
     for (const [numeroTelefono, messages] of Object.entries(messagesByPhone)) {
       const existingChat = await getChat({ numeroTelefono });
+
+      // Blocca se non è attivo
+      if (existingChat && existingChat.active === false) {
+        console.log('Non attivo ma salvo')
+        for (const msg of messages) {
+          const chat = await saveMessageOrChat({
+            userId: '1',
+            leadId: '10',
+            numeroTelefono: numeroTelefono,
+            content: msg.content,
+            sender: 'user',
+          });
+          
+          io.emit('updateChat', chat);
+        }
+        continue;
+      }
+
       let messaggiSalvati = existingChat && existingChat.messages ? existingChat.messages : [];
   
       messages.forEach(msg => {
