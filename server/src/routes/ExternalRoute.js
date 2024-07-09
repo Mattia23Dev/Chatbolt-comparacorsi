@@ -1,5 +1,7 @@
 const Chat = require('../models/chat');
+const Flow = require('../models/flow');
 const Lead = require('../models/lead');
+const Project = require('../models/project');
 const { saveMessageOrChat } = require('../utils/MongoDB');
 const { sendTextMessageOutbound } = require('../utils/WhatsappCloudApi');
 const router = require('express').Router();
@@ -96,6 +98,146 @@ router.post('/get-lead-chat', async (req, res) => {
     res.json({ chat });
   } catch (error) {
     console.error('Errore durante la ricerca della chat:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// APP CHATBOLT FUNCTIONAL ROUTE
+router.post('/create-projects', async (req, res) => {
+  const { name, tokenMeta, numeroTelefono, client, clientName } = req.body;
+
+  if (!name || !client) {
+    return res.status(400).json({ error: 'Name and client are required' });
+  }
+
+  try {
+    const newProject = new Project({
+      name,
+      tokenMeta,
+      numeroTelefono,
+      client,
+      clientName
+    });
+
+    await newProject.save();
+
+    res.status(201).json(newProject);
+  } catch (error) {
+    console.error('Error creating project:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/get-projects', async (req, res) => {
+  try {
+    const project = await Project.find();
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json(project);
+  } catch (error) {
+    console.error('Errore durante la ricerca della chat:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/project/:id', async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const flows = await Flow.find({ projectId: req.params.id });
+
+    res.status(200).json({ project, flows });
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.put('/project/:id', async (req, res) => {
+  const { name, tokenMeta, numeroTelefono, client, clientName } = req.body;
+
+  if (!name || !client) {
+    return res.status(400).json({ error: 'Name and client are required' });
+  }
+
+  try {
+    const project = await Project.findByIdAndUpdate(
+      req.params.id,
+      { name, tokenMeta, numeroTelefono, client, clientName },
+      { new: true } // Questa opzione restituisce il documento aggiornato
+    );
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.status(200).json(project);
+  } catch (error) {
+    console.error('Error updating project:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+//Flusso api
+
+router.post('/create-flow', async (req, res) => {
+  const { name, responseTime, prompt, projectId } = req.body;
+
+  if (!name || !responseTime || !prompt || !projectId) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    const flow = new Flow({
+      name,
+      responseTime,
+      prompt,
+      projectId,
+    });
+
+    await flow.save();
+
+    res.status(201).json(flow);
+  } catch (error) {
+    console.error('Error creating flow:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/flow/:id', async (req, res) => {
+  try {
+    const flow = await Flow.findById(req.params.id);
+    if (!flow) {
+      return res.status(404).json({ error: 'Flow not found' });
+    }
+    res.status(200).json(flow);
+  } catch (error) {
+    console.error('Error fetching flow:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.put('/flows/:id', async (req, res) => {
+  const { nodes, edges } = req.body;
+
+  try {
+    const flow = await Flow.findByIdAndUpdate(
+      req.params.id,
+      { nodes, edges },
+      { new: true }
+    );
+    if (!flow) {
+      return res.status(404).json({ error: 'Flow not found' });
+    }
+    res.status(200).json(flow);
+  } catch (error) {
+    console.error('Error updating flow:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

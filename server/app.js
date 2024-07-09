@@ -10,6 +10,9 @@ const { init } = require('./src/utils/WebSocket.js');
 const { connectToSecondDatabase } = require('./src/utils/MongoDB.js');
 const initializeLeadModel = require('./src/models/lead.js');
 const createLeadModel = require('./src/models/lead.js');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('./src/models/user.js');
 
 app.use(express.json());
 app.use(cors());
@@ -40,5 +43,23 @@ const main = () => {
         console.info(`Bot is running and listening on port: ${port}`)
     );
 }
+
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+  
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Email o password non corretti' });
+    }
+  
+    const isMatch = password === user.password;
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Email o password non corretti' });
+    }
+  
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {});
+  
+    res.json({ token });
+  });
 
 connectToMongoDB().then(main);

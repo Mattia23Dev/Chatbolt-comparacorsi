@@ -1,0 +1,25 @@
+.layout {
+    min-height: 100vh;
+  }
+  
+  .content {
+    padding: 24px;
+  }
+  
+  .project-settings {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px;
+  }
+  
+  .project-settings .ant-btn {
+    font-size: 20px;
+  }
+  
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
