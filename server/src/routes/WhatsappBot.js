@@ -125,7 +125,9 @@ const waitAction = (node) => {
     let replyToUser = '';
     console.log("Processando il ciclo dei nodi")
 
-    for (const node of nodes) {
+    const filteredNodes = nodes.filter(node => node.data.action !== 'waitAction');
+
+    for (const node of filteredNodes) {
       switch (node.data.action) {
         //case 'waitAction':
         //  await waitAction(node);
@@ -205,6 +207,10 @@ const waitAction = (node) => {
       const messagesContent = messaggiSalvati.map(message =>
         `${message.sender === 'user' ? 'Utente' : 'Bot'}: ${message.content}`
       ).join('\n');
+      const messaggiPrompt = `
+      Messaggi precedenti
+      ${messagesContent}
+      `
   
       for (const msg of messages) {
         const chat = await saveMessageOrChat({
@@ -221,7 +227,7 @@ const waitAction = (node) => {
         io.emit('updateChat', chat);
     }  
 
-      await processFlowNodes(flow.nodes, messagesContent, messages[0].sendTextMessage, project, numeroTelefono, flow, projectId, clientId, io);
+      await processFlowNodes(flow.nodes, messaggiPrompt, messages[0].sendTextMessage, project, numeroTelefono, flow, projectId, clientId, io);
   
       isProcessing = false;
       if (messageQueue.length > 0) {
