@@ -233,7 +233,7 @@ const Flow = () => {
             flow={flow && flow}
             selectedNode={
               selectedNode
-                ? { label: selectedNode.data.label, id: selectedNode.id, customType: selectedNode?.data.customType, data: selectedNode?.data }
+                ? { label: selectedNode.data.label, id: selectedNode.id, customType: selectedNode?.data.customType, data: selectedNode?.data, type: selectedNode?.type }
                 : null
             }
           />

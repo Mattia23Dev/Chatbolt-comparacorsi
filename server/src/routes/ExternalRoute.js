@@ -263,6 +263,66 @@ router.post('/flows/:id/get-template', async (req, res) => {
   }
 });
 
+router.post('/nodes/:flowId/update', async (req, res) => {
+  try {
+    const { nodeId, type, data } = req.body;
+    const flowId = req.params.flowId;
+    console.log(data)
+
+    const flow = await Flow.findById(flowId);
+
+    if (!flow) {
+      return res.status(404).json({ message: 'Flow not found' });
+    }
+
+    const nodeIndex = flow.nodes.findIndex(node => node.id === nodeId);
+    const node = flow.nodes[nodeIndex];
+
+
+    if (nodeIndex === -1) {
+      return res.status(404).json({ message: 'Node not found' });
+    }
+
+    if (node.type === 'messageNode') {
+      node.data.customType = data.messageType || node.data.customType;
+      node.data.action = data.messageType || node.data.action;
+
+      if (data.metaTemplate) {
+        node.data.metaTemplate = data.metaTemplate;
+      }
+
+      if (data.template) {
+        node.data.template = data.template;
+      }
+    } else if (node.type === "waitNode"){
+      node.data.waitingTime = data.waitingTime || node.data.waitingTime;
+    } else if (node.type === "llmNode"){
+      node.data.customType = data.callType || node.data.customType;
+
+      if (node.data.customType === 'response') {
+        console.log('ok')
+        node.data.action = 'responseLLM';
+        node.data.prompt = data.prompt;
+      } else if (node.data.customType === 'save') {
+        node.data.action = 'saveInfoPrompt';
+        node.data.prompt = data.prompt;
+      }
+    } else if (node.type === 'saveInfoNode') {
+      node.data.infoType = data.infoType || node.data.infoType;
+    } else {
+      console.log('Non trovato')
+    }
+
+    flow.nodes[nodeIndex] = node
+    const savedFlow = await flow.save();
+    console.log('Flow Saved:', savedFlow.nodes[0].data);
+
+    res.json({ message: 'Node updated successfully' });
+  } catch (error) {
+    console.error('Error updating node:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
 // CUSTOM FIELDS
@@ -306,6 +366,25 @@ router.get('/chats/:projectId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching chats:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+router.post('/update-contact/:id', async (req, res) => {
+  try {
+      const { id } = req.params;
+      const updatedData = req.body;
+
+      const contact = await Chat.findByIdAndUpdate(id, updatedData, { new: true });
+
+      if (!contact) {
+          return res.status(404).json({ message: 'Contact not found' });
+      }
+
+      res.json(contact);
+  } catch (error) {
+      console.error('Error updating contact:', error);
+      res.status(500).json({ message: 'Internal server error' });
   }
 });
 

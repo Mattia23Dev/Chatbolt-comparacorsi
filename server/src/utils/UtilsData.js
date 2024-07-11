@@ -18,21 +18,21 @@ exports.defaultFlowData = {
         dragging: false
       },
       {
-        id: "Tbj_-Z5oPb0ZhWztSlb0p",
+        id: "CsTrnWEsvuptIln0Z3rHi",
         type: "llmNode",
-        position: { x: 69.92394815646105, y: 228.00475050078137 },
-        data: {
+        position: { x: 442.7819660954442, y: 227.753285436615 },
+        data: { 
             label: "llmNode node",
-            service: "Openai",
-            customType: "response",
-            action: "responseLLM",
+            customType: "save",
+            action: "saveInfoPrompt",
             number: 1,
+            service: "Openai",
             prompt: "",
-         },
+        },
         width: 102,
         height: 69,
         selected: false,
-        positionAbsolute: { x: 69.92394815646105, y: 228.00475050078137 },
+        positionAbsolute: { x: 442.7819660954442, y: 227.753285436615 },
         dragging: false
       },
       {
@@ -60,28 +60,28 @@ exports.defaultFlowData = {
         dragging: false
       },
       {
-        id: "CsTrnWEsvuptIln0Z3rHi",
+        id: "Tbj_-Z5oPb0ZhWztSlb0p",
         type: "llmNode",
-        position: { x: 442.7819660954442, y: 227.753285436615 },
-        data: { 
+        position: { x: 69.92394815646105, y: 228.00475050078137 },
+        data: {
             label: "llmNode node",
-            customType: "save",
-            action: "saveInfoPrompt",
-            number: 3,
             service: "Openai",
+            customType: "response",
+            action: "responseLLM",
+            number: 3,
             prompt: "",
-        },
+         },
         width: 102,
         height: 69,
         selected: false,
-        positionAbsolute: { x: 442.7819660954442, y: 227.753285436615 },
+        positionAbsolute: { x: 69.92394815646105, y: 228.00475050078137 },
         dragging: false
       },
       {
         id: "ajt8BHtKSo88k1S9ISutz",
         type: "messageNode",
         position: { x: 608.5125698241161, y: 106.94970438452157 },
-        data: { 
+        data: {
             label: "messageNode node",
             customType: "LMMResponse",
             action: "LMMResponse",

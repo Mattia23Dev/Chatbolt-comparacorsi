@@ -13,36 +13,6 @@ import { useParams } from 'react-router-dom';
 
 const { Header, Content, Sider } = Layout;
 
-const dummyChats = [
-  {
-    id: 1,
-    name: 'pietro chianese',
-    lastMessage: 'an hour',
-    messages: [
-      { id: 1, sender: 'user', text: 'Vorrei sapere se avete il corso di scienze della formazione primaria' },
-      { id: 2, sender: 'bot', text: 'Salve! Sono Sara del team di Comparacorsi. Come posso aiutarti oggi?' },
-      { id: 3, sender: 'bot', text: 'Mi dispiace, ma non offriamo corsi di Scienze della Formazione Primaria. Posso aiutarti a trovare un altro corso?' },
-      { id: 4, sender: 'user', text: 'No ti ringrazio gentillissima' },
-      { id: 5, sender: 'bot', text: 'Va bene! Se cambi idea o hai altre domande, non esitare a contattarci. Buona giornata!' },
-      { id: 6, sender: 'user', text: 'Grazie mille' },
-      { id: 7, sender: 'bot', text: 'Di nulla, è stato un piacere assisterti. Se avrai altre domande in futuro, siamo qui per aiutarti. Buona giornata!' }
-    ],
-    contact: {
-      name: 'Kao',
-      email: '---- Edit ----',
-      phone: '+393891114193',
-      localTime: '11:07',
-      contactTime: '05/08/2024 9:13 AM',
-      country: 'Italy',
-      conversationSummary: 'Interesse per corso di scienze...',
-      appointmentDate: '',
-      openaiResponse: 'Di nulla, è stato un piacere as...',
-      additionalInfo: []
-    }
-  },
-  // Aggiungi altre chat simili...
-];
-
 const Chat = () => {
   const [selectedChat, setSelectedChat] = useState();
   const { projectId } = useParams();
@@ -86,6 +56,17 @@ const Chat = () => {
 
   if (loading) return <p>Loading...</p>;
 
+  const updateContact = (updatedContact) => {
+    const updatedChats = chats.map(chat => 
+      chat._id === updatedContact._id ? updatedContact : chat
+    );
+    const updatedChats2 = filteredChats.map(chat => 
+      chat._id === updatedContact._id ? updatedContact : chat
+    );
+    setChats(updatedChats);
+    setFilteredChats(updatedChats2)
+  };
+
   return (
     <Layout style={{ height: '100vh' }}>
       <HeaderApp showProject={true} />
@@ -114,7 +95,7 @@ const Chat = () => {
           </Content>
         </Layout>
         <Sider width={300} className="site-layout-background">
-          <ContactInfo contact={selectedChat && selectedChat} />
+          <ContactInfo contact={selectedChat && selectedChat} updateContact={updateContact} />
         </Sider>
       </Layout>}
     </Layout>

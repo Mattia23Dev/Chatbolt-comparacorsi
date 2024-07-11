@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { BsArrowLeft } from 'react-icons/bs';
 import { SettingsPanelHeader } from './styled';
-import { Form, Input, Button, Select, InputNumber, List, Typography } from 'antd';
+import { Form, Input, Button, Select, InputNumber, List, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import api from '../../context/ApiContext';
 
@@ -10,9 +10,10 @@ const { TextArea } = Input;
 const { Text } = Typography;
 
 export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project }) => {
+  const [selNode, setSelNode] = useState(selectedNode && selectedNode)
   const initialSaveOptions = [
-    ...selectedNode?.data?.infoType,
-    ...(project?.customFields || []),
+    ...(Array.isArray(selectedNode?.data?.infoType) ? selectedNode.data.infoType : []),
+    ...(Array.isArray(project?.customFields) ? project.customFields : []),
   ];
   const [templates, setTemplates] = useState([])
   const [saveOptions, setSaveOptions] = useState(initialSaveOptions)
@@ -54,7 +55,7 @@ export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project })
   };
   const handleChange = (field, value) => {
     if (field === "metaTemplate"){
-      const selectedTemplate = templates.find(template => template.name === value);
+      const selectedTemplate = Array.isArray(templates) && templates?.find(template => template.name === value);
       setMessageNode(prevState => ({
         ...prevState,
         metaTemplate: value,
@@ -90,8 +91,57 @@ export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project })
     handleGetTemplates()
   }, [project])
 
+
+  const handleSave = async () => {
+    const payload = {
+      nodeId: selectedNode.id,
+      type: selectedNode.type,
+      data: {},
+    };
+
+    switch (selectedNode.type) {
+      case 'messageNode':
+        payload.data = {
+          messageType: messageNode.messageType,
+          metaTemplate: messageNode.metaTemplate,
+          template: messageNode.template,
+        };
+        break;
+      case 'llmNode':
+        payload.data = {
+          service: LLMNode.service,
+          callType: LLMNode.callType,
+          prompt: LLMNode.callType === 'save' ? LLMNode.LLMSavePrompt : LLMNode.LLMPrompt,
+        };
+        break;
+      case 'saveInfoNode':
+        payload.data = {
+          infoType: saveInfoNode.infoType,
+        };
+        break;
+      case 'waitNode':
+        payload.data = {
+          waitingTime: waitNode.responseTime,
+        };
+        break;
+      default:
+        console.log(`Node type ${selectedNode.type} not recognized.`);
+        return;
+    }
+
+    try {
+      const response = await api.post(`/api/nodes/${flow._id}/update`, payload);
+      message.success('Node updated successfully');
+      onBack();
+      //onChange(selectedNode.id, payload.data)
+    } catch (error) {
+      console.error('Error updating node:', error);
+      message.error('Error updating node');
+    }
+  };
+  console.log(selectedNode)
   const renderSettings = () => {
-    if (selectedNode.label.includes('messageNode')) {
+    if (selectedNode?.label.includes('messageNode')) {
       return (
         <>
           <Form.Item label="Tipologia messaggio">
@@ -109,7 +159,7 @@ export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project })
               onChange={(value) => handleChange('metaTemplate', value)} 
               value={messageNode?.metaTemplate?.name}
               defaultValue="">
-                {templates.length > 0 && templates?.map((template) => (
+                {Array.isArray(templates) && templates.length > 0 && templates?.map((template) => (
                   <Option value={template.name}>{template.name}</Option>
                 ))}
             </Select>
@@ -118,7 +168,7 @@ export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project })
         </>
       );
     }
-    if (selectedNode.label.includes('llmNode')) {
+    if (selectedNode?.label.includes('llmNode')) {
       return (
         <>
           <Form.Item label="Service">
@@ -158,7 +208,7 @@ export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project })
         </>
       );
     }
-    if (selectedNode.label.includes('saveInfoNode')) {
+    if (selectedNode?.label.includes('saveInfoNode')) {
       return (
         <>
           <Form.Item label="Select a Field">
@@ -174,11 +224,11 @@ export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project })
               </Select>
             </Form.Item>
 
-            {saveInfoNode.infoType.length > 0 && (
+            {saveInfoNode?.infoType?.length > 0 && (
               <List
                 header={<div></div>}
                 bordered
-                dataSource={saveInfoNode.infoType}
+                dataSource={saveInfoNode?.infoType}
                 renderItem={item => (
                   <List.Item>
                     <div style={{ flex: 1 }}>
@@ -200,7 +250,7 @@ export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project })
         </>
       );
     }
-    if (selectedNode.label.includes('waitNode')) {
+    if (selectedNode?.label.includes('waitNode')) {
       return (
         <>
           <Form.Item label="Wait seconds">
@@ -226,7 +276,7 @@ export const SettingsPanel = ({ onChange, onBack, selectedNode, flow, project })
       <Form layout="vertical">
         {renderSettings()}
       </Form>
-      <Button type='primary'>Salva</Button>
+      <Button onClick={handleSave} type='primary'>Salva</Button>
     </div>
   );
 };
