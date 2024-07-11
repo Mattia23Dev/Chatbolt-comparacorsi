@@ -7,60 +7,67 @@ const { saveMessageOrChat, getChat, saveInfoLeadDb, getUser } = require('../util
 const { extractJSONFromOpenAIResponse } = require('../utils/UtilsFunction');
 const { format } = require('date-fns');
 const { getIO } = require('../utils/WebSocket');
+const Project = require('../models/project');
+const Flow = require('../models/flow');
 require('dotenv').config();
-const sistemaPromptIniziale = `
-Sei Sara, assistente dei clienti di Comparacorsi.
-Il tuo lavoro è guidare i clienti nell’intero servizio di assistenza. Devi gestire le interazioni con efficacia e professionalità. Rispondi in maniera sintetica, semplice e concisa. Evita di commentare le scelte dei Clienti, esempio non dire “Ottima scelta ecc”. Ogni messaggio che invii deve contenere al massimo una sola domanda. Evita di creare frasi che contengono tante domande, perchè l’utente farà fatica a risponderti.
-ComparaCorsi è un servizio gratuito che confronta oltre 200 corsi di formazione online, spaziando dai corsi universitari triennali ai corsi professionali. Il suo scopo è aiutare i clienti a trovare il percorso formativo online più adatto alle loro esigenze nel minor tempo possibile e al minor prezzo. Ad aiutare i clienti ci sono gli Orientatori, ossia degli operatori di comparacorsi specializzati che conoscono perfettamente il mondo della formazione online e che sanno rispondere a tutte le domande degli utenti. ComparaCorsi non è un’istituzione educativa ma un comparatore di corsi, e i costi dei corsi variano da ateneo ad ateneo.
-Il servizio di assistenza che devi condurre prevede tutti i seguenti step: Il scopo finale è raccogliere le informazioni del cliente previsti in questi 8 step
-1) Il cliente contatta l’assistenza di Comparacorsi.
-2)  Presentati brevemente come Sara del team di Comparacorsi e presenta il servizio gratuito di Comparacorsi che ti guida nel trovare il miglior corso nel minor tempo e al minor prezzo.
-3) L’assistente, una volta compresa la richiesta dell’utente, illustra le opportunità di comparacorsi. Quando un utente fa una domanda su un corso, devi fornire una risposta breve, evidenziando i vantaggi dell’offerta formativa.
-Quando un utente chiede maggiori informazioni, digli cos’è ComparaCorsi e poi fai domande per approfondire i suoi bisogni, ad esempio: “quale corso vorresti frequentare?” “in cosa posso aiutarti”
-4) Dopo aver risposto alle domande del cliente, l’assistente chiede al cliente se vuole fissare una chiamata gratuita con un nostro orientatore esperto nella materia a cui è interessato l’utente al fine di rispondere a tutte le domande. Spiega che la chiamata con l’orientatore è determinante per orientare al meglio il cliente, fornendo un valore aggiunto tangibile alla sua ricerca formativa. è necessario fissare una chiamata perché la scelta universitaria è complessa ed essere guidato semplifica il processo, sottolinea i benefici di tale scelta per il suo futuro formativo e professionale. Non essere troppo diretto nel chiedere la chiamata, non essere troppo insistente. La chiamata non ha costi, dura 10 minuti, sceglie l’utente quando essere chiamato e chiarisce tutti i dubbi.
-5) Se l’utente vuole fissare una chiamata con un orientatore, l’assistenza ha bisogno di sapere il giorno e l’orario in cui l’utente preferisce essere chiamato. L’appuntamento deve essere esplicitamente indicato dal cliente. Se un utente risponde in maniera vaga su data e ora dell’appuntamento, chiedigli un orario e un giorno preciso.
-Ad Esempio se scrive “ciao, vorrei maggiori informazioni” non sta chiedendo esplicitamente di fissare un appuntamento.
-6) Chiedi esplicitamente all’utente quale sia il suo nome e cognome
-7) Chiedi sempre all’utente la sua email. La mail serve un eventuale l’invio di materiali dopo la chiamata.
-8) L’assistenza conferma l’appuntamento e rimane a disposizione per altre domande o richieste. Dire che l’utente verrà chiamato da un nostro consulente alla data prestabilita, in caso però l’utente venisse chiamato per errore in un altro momento semplicemente l’utente può prendere un appuntamento con l’orientatore..
-Norme generali su come comportarsi con gli utenti:
-- Quando un utente fa una domanda su un corso, devi fornire una risposta breve, evidenziando i vantaggi dell’offerta formativa.
-- Comunicazione chiara e amichevole: Utilizzare un linguaggio semplice, chiaro e diretto, adatto alla comunicazione su WhatsApp
-- Quando un utente chiede maggiori informazioni, digli cos’è ComparaCorsi e poi fai domande per approfondire i suoi bisogni, ad esempio: “quale corso vorresti frequentare?” “in cosa posso aiutarti”
-- Dimostrare comprensione verso le esigenze dell’utente, mantenendo un approccio professionale
-Ulteriori Informazioni per rispondere alle Domande degli Utenti:
-a)Come funzionano le Università Telematiche? Le Università Telematiche riconosciute dal MIUR funzionano come quelle tradizionali, ma con lezioni e materiali completamente online. Gli esami possono essere in sede o online.
-b) Quali sono i vantaggi delle Università Telematiche? I vantaggi delle Università Telematiche includono flessibilità di studio, iscrizioni annuali senza test di ingresso, titoli riconosciuti e agevolazioni economiche.
-c) Qual è la migliore Università Telematica? Le migliori università telematiche sono le 11 riconosciute dal Miur, offrono un’ampia gamma di corsi e garantiscono la stessa validità legale dei titoli rispetto alle università tradizionali.
-d) Come funziona l’iscrizione alle Università Online? Per iscriversi alle Università Online, si compilano documenti e moduli online. L’iscrizione è possibile in qualsiasi momento dell’anno e viene supportata da orientatori.
-e) Come funzionano gli esami delle Università Online? Gli esami delle Università Online variano tra scritti e orali, e possono essere svolti sia in sede che online, a seconda dell’università.
-Di seguito un riassunto di tutti i corsi, organizzati per aree di studio principali, se non ci sono in questa lista non offriamo questi corsi:
--Beni Culturali: Conoscenza, Gestione, Valorizzazione (Archeologico, Archivistico, Demoetnoantropologico, Storico-artistico, Operatore ed esperto in Patrimoni Culturali e Memoria Digitali, Operatore ed esperto in Patrimoni e Paesaggi Culturali: linguaggi e codici della mediazione)
--Ingegneria (Civile, Industriale, Informatica, dell’Automazione, Civile ed Ambientale, delle Infrastrutture per una Mobilità Sostenibile, Gestionale)
--Lettere e Filologia (Classiche, Lingue Moderne, Moderne, Letteratura, Arte, Musica e Spettacolo, Lingua e Cultura Italiana, Lettere, Sapere Umanistico e Formazione)
--Psicologia (del Lavoro e dell’Economia, Clinica e Dinamica, Giuridica, Strategica, del Lavoro e delle Organizzazioni, Clinica e delle App, Discipline Psicosociali, Nuove Tecnologie, Psicologica delle Risorse Umane, delle Organizzazioni e delle Imprese, Comportamentale e Cognitiva Applicata)
--Scienze Giuridiche e dei Servizi Giuridici (Servizi Giuridici, Servizi Giuridici per l’Impresa, Scienze Giuridiche)
--Scienze dell’Educazione e della Formazione (Educatore nei Servizi per l’Infanzia, Educazione Sociale e di Comunità, Prima Infanzia, Educatore Professionale Socio-Pedagogico, Innovazione Educativa e Apprendimento Permanente nella Formazione degli Adulti in Contesti Nazionali e Internazionali)
--Scienze della Comunicazione (Digital Entertainment and Gaming, Digital Marketing, Influencer, Istituzionale e d’impresa, Comunicazione Digitale d’Impresa, Istituzioni Pubbliche e Media Digitali, Comunicazione e Multimedialità)
--Economia e Management (diverse specializzazioni incluse Amministrazione e Finanza, Consulente del Lavoro, Management dello Sport e degli Eventi Sportivi, Aziende Sanitarie ed Economia della Salute, Psicoeconomia, Scienze Bancarie e Assicurative, start-up d’impresa e modelli di business, Economia e Commercio, Management delle Aziende Sanitarie, Management ed e-Government delle Aziende Pubbliche, Relazioni Internazionali per lo Sviluppo Economico)
--Scienze Politiche e Sociali (Politica, economia e pubblica amministrazione, Politica, società e istituzioni, Scienze Politiche)
--Scienze Biologiche e della Nutrizione (Nutraceutica, Scienze della Nutrizione Umana, Scienze dell’Alimentazione e Gastronomia)
--Scienze Pedagogiche (Pedagogia della Disabilità e Marginalità, Pedagogia e Scienze Umane, Teorie e Metodologie dell’e-learning e della Media Education, Pedagogiche)
--Scienze Motorie e delle Attività Motorie e Sportive (Bio-Sanitario, Calcio, Sport and Football Management, Organizzazione e Gestione dei Servizi per lo Sport e le Attività Motorie, Pratica e Gestione delle Attività Sportive)
--Moda e Design (del Prodotto e della Moda, Industriale)
--Gastronomia, Ospitalità e Territori (Enologia e Vinicoltura, Turismo, delle Aziende Turistiche, Turismo Sostenibile)
--Gestione d’Impresa e Tecnologie Digitali (Economia Digitale, Immobiliare, Management Sportivo, Marketing e Vendite, Digital Law and Economics, Digital Marketing for Business, Green Economy e Gestione Sostenibile)
--Scienze e Tecnologie delle Arti, dello Spettacolo e del Cinema
--Sociologia e Innovazione
--Statistica e Big Data
--Filosofia ed Etica
--Processi Cognitivi e Tecnologie (Cyberpsicologia, Neuroscienze, Psicologia clinica dell’infanzia e dell’adolescenza)
--Linguistica Moderna (Cultura Editoriale ed Ecosistema Digitale)
--Management dello Sport e delle Attività Motorie
--Scienze Turistiche
--Patrimoni Culturali nell’Era Digitale
--Scienze e Tecniche dell’Educazione e dei Servizi per l’Infanzia
-`;
+
+const getFlowByPhoneNumber = async (phoneNumber) => {
+    const project = await Project.findOne({ phoneNumberId: phoneNumber });
+    const flow = await Flow.findOne({projectId: project._id})
+    return project ? {flow: flow, projectId: project._id, clientId: project.client, project: project} : null;
+  };
+
+  const getTokenByPhoneNumber = async (phoneNumber) => {
+    const project = await Project.findOne({ phoneNumberId: phoneNumber });
+    const flow = await Flow.findOne({projectId: project._id})
+    return project ? {token: project.tokenMeta, flow: flow} : null;
+  }
+
+const getFormattedDate = () => {
+    const now = new Date();
+    return format(now, 'dd-MM-yyyy HH:mm');
+  };
+
+  const customPromptSave = (project, messagesContent) => {
+    let prompt = `
+      Messaggi precedenti:
+      ${messagesContent}
+  
+      Analizza la conversazione e estrai le seguenti informazioni:
+      1. Nome dell'utente
+      2. Cognome dell'utente
+      3. Email dell'utente
+      4. Riassunto della conversazione (massimo 10 parole)
+      5. Data e ora preferita per l'appuntamento (se menzionata)
+  
+      Per la data e l'ora dell'appuntamento, Oggi è: ${getFormattedDate()}:
+          - Se viene menzionata una data specifica, convertila nel formato DD-MM-YYYY HH:mm
+          - Se viene menzionato "domani", usa la data di domani nel formato DD-MM-YYYY
+          - Se viene menzionato un giorno della settimana (es. "lunedì prossimo"), calcola la data del prossimo giorno corrispondente
+    `;
+  
+    if (project.customFields && project.customFields.length > 0) {
+      prompt += `
+        Inoltre, estrai le seguenti informazioni personalizzate:
+      `;
+      project.customFields.forEach((field, index) => {
+        prompt += `
+        ${index + 6}. ${field.name}
+        `;
+      });
+    }
+  
+    prompt += `
+      Fornisci le informazioni estratte nel seguente formato JSON, senza alcun testo aggiuntivo o formattazione:
+      {"first_name":"","last_name":"","email":"","conversation_summary":"","appointment_date":"", ${project.customFieldsArray.map(field => `"${field.name}":""`).join(', ')}}
+  
+      Assicurati di riempire i campi solo con le informazioni disponibili, lasciando vuoti quelli per cui non ci sono informazioni.
+      Per il campo appointment_date, usa sempre il formato DD-MM-YYYY HH:mm.
+    `;
+  
+    return prompt;
+  };
+
 const promptSalvaInfo = `
 Analizza la conversazione contenuta nella variabile {{messagiSalvati}}. Il tuo compito è estrarre e salvare le seguenti informazioni:
 
@@ -75,11 +82,6 @@ Analizza la conversazione contenuta nella variabile {{messagiSalvati}}. Il tuo c
 Salva tutte queste informazioni in Ai trigger, associandole al numero di telefono del cliente.
 `;
 
-const getFormattedDate = () => {
-    const now = new Date();
-    return format(now, 'dd-MM-yyyy HH:mm');
-  };
-
 const Openai = new OpenAIChat(process.env.OPENAI_API_KEY, "gpt-4o")
 let messageQueue = [];
 let debounceTimer = null;
@@ -88,13 +90,13 @@ let userInfo = {};
 
 const processQueue = async () => {
     const io = getIO();
-
+    
     if (isProcessing || messageQueue.length === 0) return;
     isProcessing = true;
   
     const currentMessages = [...messageQueue];
     messageQueue = [];
-  
+
     const messagesByPhone = {};
     currentMessages.forEach(msg => {
       if (!messagesByPhone[msg.numeroTelefono]) {
@@ -104,15 +106,20 @@ const processQueue = async () => {
     });
   
     for (const [numeroTelefono, messages] of Object.entries(messagesByPhone)) {
+      const phoneNumberId = messages[0].phoneNumberId;
+      console.log(phoneNumberId)
       const existingChat = await getChat({ numeroTelefono });
+      const {flow, projectId, clientId, project} = await getFlowByPhoneNumber(phoneNumberId);
 
-      // Blocca se non è attivo
       if (existingChat && existingChat.active === false) {
         console.log('Non attivo ma salvo')
         for (const msg of messages) {
           const chat = await saveMessageOrChat({
             userId: '1',
             leadId: '10',
+            flowId: flow?._id,
+            projectId: projectId,
+            clientId: clientId,
             numeroTelefono: numeroTelefono,
             content: msg.content,
             sender: 'user',
@@ -129,64 +136,37 @@ const processQueue = async () => {
         messaggiSalvati.push({ sender: 'user', content: msg.content });
       });
   
-      const messagesContent = messaggiSalvati.map(message => 
-        `${message.sender === 'user' ? 'Utente' : 'Sara'}: ${message.content}`
+      const messagesContent = messaggiSalvati.map(message =>
+        `${message.sender === 'user' ? 'Utente' : 'Bot'}: ${message.content}`
       ).join('\n');
-  
-      const existingLead = await getUser({numeroTelefono})
-      const existingUserInfo = existingLead ? `
-      Nome: ${existingLead.first_name || messages[0].name}
-      Cognome: ${existingLead.last_name || 'N/A'}
-      Email: ${existingLead.email || 'N/A'}
-      Sommario: ${existingLead.conversation_summary || 'N/A'}
-      Data appuntamento: ${existingLead.appointment_date || 'N/A'}
-    ` : 'Nessuna informazione utente esistente trovata';
 
-      const customPromptSave = `
-        Messaggi precedenti:
-        ${messagesContent}
-  
-        Analizza la conversazione e estrai le seguenti informazioni:
-        1. Nome dell'utente
-        2. Cognome dell'utente
-        3. Email dell'utente
-        4. Riassunto della conversazione (massimo 10 parole)
-        5. Data e ora preferita per l'appuntamento (se menzionata)
-  
-        Per la data e l'ora dell'appuntamento, Oggi è: ${getFormattedDate()}:
-            - Se viene menzionata una data specifica, convertila nel formato DD-MM-YYYY HH:mm
-            - Se viene menzionato "domani", usa la data di domani nel formato DD-MM-YYYY
-            - Se viene menzionato un giorno della settimana (es. "lunedì prossimo"), calcola la data del prossimo giorno corrispondente
-  
-        Fornisci le informazioni estratte nel seguente formato JSON, senza alcun testo aggiuntivo o formattazione:
-        {"first_name":"","last_name":"","email":"","conversation_summary":"","appointment_date":""}
-  
-        Assicurati di riempire i campi solo con le informazioni disponibili, lasciando vuoti quelli per cui non ci sono informazioni.
-        Per il campo appointment_date, usa sempre il formato DD-MM-YYYY HH:mm.
-      `;
+      //const existingLead = await getUser({numeroTelefono})
   
       const customPrompt = `
         Messaggi precedenti:
         ${messagesContent}
       `;
-  
-      const replyToUser = await Openai.getOpenAIResponse(customPrompt, sistemaPromptIniziale);
-      const openAIResponse = await Openai.saveInfoLead(customPromptSave, promptSalvaInfo);
+      console.log(flow?.prompt)
+      const replyToUser = await Openai.getOpenAIResponse(customPrompt, flow?.prompt);
+      const customPromptToSave = customPromptSave(project, messagesContent);
+      const openAIResponse = await Openai.saveInfoLead(customPromptToSave, promptSalvaInfo);
       const extractedInfo = await extractJSONFromOpenAIResponse(openAIResponse);
-      console.log(extractedInfo);
-  
+
       if (!userInfo[numeroTelefono]) {
         userInfo[numeroTelefono] = {
           numeroTelefono: numeroTelefono
         };
       }
-  
+
       messaggiSalvati.push({ sender: 'bot', content: replyToUser });
-  
+
       for (const msg of messages) {
         const chat = await saveMessageOrChat({
           userId: '1',
           leadId: '10',
+          flowId: flow?._id,
+          projectId: projectId,
+          clientId: clientId,
           numeroTelefono: numeroTelefono,
           content: msg.content,
           sender: 'user'
@@ -197,6 +177,9 @@ const processQueue = async () => {
       const chat = await saveMessageOrChat({
         userId: '1',
         leadId: '10',
+        flowId: flow?._id,
+        projectId: projectId,
+        clientId: clientId,
         numeroTelefono: numeroTelefono,
         content: replyToUser,
         sender: 'bot'
@@ -207,12 +190,14 @@ const processQueue = async () => {
       Object.assign(userInfo[numeroTelefono], extractedInfo);
       try {
         const savedLead = await saveInfoLeadDb(userInfo[numeroTelefono]);
-        console.log('Informazioni del lead salvate/aggiornate:', savedLead);
+        console.log('Informazioni del lead salvate/aggiornate:');
       } catch (error) {
         console.error('Errore nel salvare le informazioni del lead:', error);
       }
       // Invia una sola risposta cumulativa
       messages[0].sendTextMessage(replyToUser);
+      if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(processQueue, (flow.responseTime || 20) * 1000);
     }
   
     isProcessing = false;
@@ -227,12 +212,14 @@ module.exports = router.post('/', async (req, res) => {
         const data = req.body;
 
         if (data.object) {
-            // Checking If there is a new message
+            const phoneNumberId = data.entry[0].changes[0].value.metadata.phone_number_id;
+            const {token, flow} = await getTokenByPhoneNumber(phoneNumberId)
             const isNewMessage = data.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
             if (isNewMessage) {
                 const Whatsapp = new WhatsappCloudAPI({
                   data,
                   graphApiVersion: 'v20.0',
+                  token: token,
                 });
                 
                 const numeroTelefono = Whatsapp.getRecipientPhoneNumber();
@@ -246,6 +233,7 @@ module.exports = router.post('/', async (req, res) => {
                     id: messageId,
                     name: name,
                     numeroTelefono: numeroTelefono,
+                    phoneNumberId: phoneNumberId,
                     content: messageBody,
                     sendTextMessage: (reply) => Whatsapp.sendTextMessage(reply)
                   });
@@ -254,7 +242,7 @@ module.exports = router.post('/', async (req, res) => {
                     clearTimeout(debounceTimer);
                   }
         
-                  debounceTimer = setTimeout(processQueue, 20000);
+                  debounceTimer = setTimeout(processQueue, (flow.responseTime || 20) * 1000);
                 }
               }
 

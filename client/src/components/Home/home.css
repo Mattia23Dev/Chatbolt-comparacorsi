@@ -12,6 +12,9 @@
     background-color: var(--primary);
     padding: 0 16px;
     color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
   }
   .header > h2 {
     color: #fff;

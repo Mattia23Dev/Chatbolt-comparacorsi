@@ -3,14 +3,16 @@ import { PanelContainer } from './styled'
 import { NodesPanel } from './NodesPanel'
 import { SettingsPanel } from './SettingsPanel'
 
-export const Panel = ({ onChange, onBack, selectedNode }) => {
+export const Panel = ({ onChange, onBack, selectedNode, flow, project }) => {
   return (
     <PanelContainer>
       {selectedNode ? (
         <SettingsPanel
+          flow={flow}
           onChange={onChange}
           onBack={onBack}
           selectedNode={selectedNode}
+          project={project}
         />
       ) : (
         <NodesPanel />

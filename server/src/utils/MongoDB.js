@@ -4,7 +4,7 @@ const Chat = require("../models/chat");
 const Lead = require("../models/lead");
 const createLeadModel = require('../models/lead');
 
-exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sender, manual}) => {
+exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sender, manual, clientId, flowId, projectId}) => {
 
     if (!userId || !leadId || !numeroTelefono || !content || !sender) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -25,6 +25,9 @@ exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sen
           userId,
           leadId,
           numeroTelefono,
+          clientId,
+          flowId,
+          projectId,
           messages: [{
             content,
             sender,
@@ -75,7 +78,7 @@ exports.getUser = async ({numeroTelefono}) => {
   }
 }
 
-exports.saveInfoLeadDb = async ({ 
+exports.saveInfoLeadDb = async ({
   numeroTelefono, 
   first_name, 
   last_name, 

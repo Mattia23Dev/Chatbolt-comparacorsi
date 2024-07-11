@@ -1,5 +1,6 @@
 import React from 'react';
 import { BsChatText } from 'react-icons/bs';
+import { ClockCircleOutlined } from '@ant-design/icons';
 import { AiOutlineApi, AiOutlineSave } from 'react-icons/ai';
 import { TextContainer } from './styled';
 
@@ -39,6 +40,16 @@ export const NodesPanel = () => {
         <TextContainer>
           <AiOutlineSave />
           <span>Save Info</span>
+        </TextContainer>
+      </button>
+      <button
+        className="dndnode"
+        onDragStart={(event) => onDragStart(event, 'waitNode')}
+        draggable
+      >
+        <TextContainer>
+          <ClockCircleOutlined />
+          <span>Wait seconds</span>
         </TextContainer>
       </button>
     </div>

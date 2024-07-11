@@ -3,10 +3,10 @@ const fs = require('fs');
 const FormData = require('form-data');
 require('dotenv').config();
 module.exports = class WhatsappCloudApi {
-    constructor({ graphApiVersion, data }) {
+    constructor({ graphApiVersion, data, token }) {
 
         this.graphApiVersion = graphApiVersion;
-        this.bearerToken = process.env.META_TOKEN;
+        this.bearerToken = token;
         this.messagingProduct = 'whatsapp';
 
         this.senderBusinessPhoneId = data.entry[0].changes[0].value.metadata.phone_number_id;
@@ -431,4 +431,24 @@ module.exports.sendTextMessageOutbound = async (numeroTelefono, messageText) => 
         return false
     }
 }
+
+module.exports.getMessageTemplates = async ( whatsappBusinessAccountId, accessToken ) => {
+    console.log(whatsappBusinessAccountId)
+    let url = `https://graph.facebook.com/v20.0/${whatsappBusinessAccountId}/message_templates?status=APPROVED`;
+
+    try {
+      const response = await axios.get(url, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+      console.log('Templates retrieved successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error retrieving templates:', error.response ? error.response.data : error.message);
+      throw error;
+    }
+  };
+  
 

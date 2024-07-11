@@ -3,7 +3,8 @@ const Flow = require('../models/flow');
 const Lead = require('../models/lead');
 const Project = require('../models/project');
 const { saveMessageOrChat } = require('../utils/MongoDB');
-const { sendTextMessageOutbound } = require('../utils/WhatsappCloudApi');
+const { defaultFlowData } = require('../utils/UtilsData');
+const { sendTextMessageOutbound, getMessageTemplates } = require('../utils/WhatsappCloudApi');
 const router = require('express').Router();
 
 router.get("/get-all-chats", async (req, res) => {
@@ -187,7 +188,7 @@ router.put('/project/:id', async (req, res) => {
 //Flusso api
 
 router.post('/create-flow', async (req, res) => {
-  const { name, responseTime, prompt, projectId } = req.body;
+  const { name, responseTime, prompt, projectId, promptSaveInfo } = req.body;
 
   if (!name || !responseTime || !prompt || !projectId) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -199,6 +200,9 @@ router.post('/create-flow', async (req, res) => {
       responseTime,
       prompt,
       projectId,
+      nodes: defaultFlowData.nodes,
+      edges: defaultFlowData.edges,
+      promptSaveInfo,
     });
 
     await flow.save();
@@ -239,6 +243,69 @@ router.put('/flows/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating flow:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/flows/:id/get-template', async (req, res) => {
+  try {
+    const { numeroTelefono } = req.body;
+    const project = await Project.findOne({ numeroTelefono: numeroTelefono });
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    const { waAccountId, tokenMeta } = project;
+    const templates = await getMessageTemplates(waAccountId, tokenMeta);
+
+    res.json(templates);
+  } catch (error) {
+    console.error('Error getting templates:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+// CUSTOM FIELDS
+router.post('/projects/:id/custom-fields', async (req, res) => {
+  try {
+    const { customFields } = req.body;
+    const projectId = req.params.id;
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    project.customFields = customFields;
+    await project.save();
+
+    await Chat.updateMany(
+      { projectId: projectId },
+      { $push: { customFields: { $each: customFields.map(field => ({ ...field, value: '' })) } } }
+    );
+
+    res.json(project);
+  } catch (error) {
+    console.error('Error updating custom fields:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+//CHATS
+router.get('/chats/:projectId', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const chats = await Chat.find({ projectId });
+
+    if (!chats) {
+      return res.status(404).json({ message: 'No chats found for this project' });
+    }
+
+    res.json(chats);
+  } catch (error) {
+    console.error('Error fetching chats:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 

@@ -29,24 +29,28 @@ import { useParams } from 'react-router-dom'
 import api from '../../context/ApiContext'
 import { LLMNode } from './Nodes/LLMNode'
 import { SaveInfoNode } from './Nodes/SaveInfoNode'
+import { WaitNode } from './Nodes/WaitNode'
 
 const nodeTypes = {
   messageNode: MessageNode,
   llmNode: LLMNode,
   saveInfoNode: SaveInfoNode,
+  waitNode: WaitNode,
 };
 
 
 const Flow = () => {
-  const { flowId } = useParams();
+  const { flowId, projectId } = useParams();
   const reactFlowWrapper = useRef(null)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [flow, setFlow] = useState()
   const [reactFlowInstance, setReactFlowInstance] = useState(null)
   const [selectedNode, setSelectedNode] = useState(null)
   const [hasFlowError, setHasFlowError] = useState(false)
   const [isLoading, setIsLoading] = useState(true);
-
+  const [project, setProject] = useState()
+  console.log(selectedNode)
   useEffect(() => {
     const fetchFlow = async () => {
       try {
@@ -54,6 +58,7 @@ const Flow = () => {
         const flowData = response.data;
         setNodes(flowData.nodes || []);
         setEdges(flowData.edges || []);
+        setFlow(flowData)
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching flow:', error);
@@ -64,6 +69,19 @@ const Flow = () => {
 
     fetchFlow();
   }, [flowId, setNodes, setEdges]);
+
+  useEffect(() => {
+    const fetchProjectAndFlow = async () => {
+      try {
+        const response = await api.get(`/api/project/${projectId}`);
+        setProject(response.data.project);
+      } catch (error) {
+        console.error('Error fetching project:', error);
+      }
+    };
+
+    fetchProjectAndFlow()
+  }, [projectId])
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -118,7 +136,7 @@ const Flow = () => {
   const handleCloseSettings = () => {
     setSelectedNode(null)
   }
-
+  console.log({nodes, edges})
   const handleSaveOrDownload = async (type) => {
     if (reactFlowInstance) {
       const flow = reactFlowInstance.toObject();
@@ -188,7 +206,10 @@ const Flow = () => {
         <ReactFlowProvider>
           <FlowContainer ref={reactFlowWrapper}>
             <ReactFlow
-              nodes={nodes}
+              nodes={nodes.map(node => ({
+                ...node,
+                data: { ...node.data, flow: flow && flow }
+              }))}
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
@@ -207,10 +228,12 @@ const Flow = () => {
           </FlowContainer>
           <Panel
             onChange={handleNodeLabelChange}
+            project={project && project}
             onBack={handleCloseSettings}
+            flow={flow && flow}
             selectedNode={
               selectedNode
-                ? { label: selectedNode.data.label, id: selectedNode.id }
+                ? { label: selectedNode.data.label, id: selectedNode.id, customType: selectedNode?.data.customType, data: selectedNode?.data }
                 : null
             }
           />
