@@ -15,7 +15,9 @@ const jwt = require('jsonwebtoken');
 const User = require('./src/models/user.js');
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: ["https://chatboltls.netlify.app"],
+}));
 const server = http.createServer(app);
 init(server);
 //ssh -p 443 -R0:localhost:9000 -L4300:localhost:4300 qr@a.pinggy.io
