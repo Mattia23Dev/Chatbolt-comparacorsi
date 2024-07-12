@@ -327,6 +327,24 @@ router.post('/nodes/:flowId/update', async (req, res) => {
   }
 });
 
+router.post('/setDefaultFlow', async (req, res) => {
+  const { flowId, projectId } = req.body;
+
+  if (!flowId || !projectId) {
+    return res.status(400).json({ error: 'flowId e projectId sono obbligatori' });
+  }
+
+  try {
+    await Flow.findByIdAndUpdate(flowId, { default: true });
+
+    await Flow.updateMany({ projectId, _id: { $ne: flowId } }, { default: false });
+
+    res.status(200).json({ message: 'Flusso di default aggiornato correttamente' });
+  } catch (error) {
+    console.error('Errore nell\'impostare il flusso di default:', error);
+    res.status(500).json({ error: 'Errore interno del server' });
+  }
+});
 
 // CUSTOM FIELDS
 router.post('/projects/:id/custom-fields', async (req, res) => {

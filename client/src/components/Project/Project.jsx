@@ -237,6 +237,20 @@ const Project = () => {
     );
   }
 
+  const setDefaultFlow = async (flowId) => {
+    try {
+      const response = await api.post('/api/setDefaultFlow', { flowId, projectId: projectId });
+      console.log(response.data.message);
+      const updatedFlows = flows.map(flow => ({
+        ...flow,
+        default: flow._id === flowId
+      }));
+      setFlows(updatedFlows);
+    } catch (error) {
+      console.error('Errore nell\'impostare il flusso di default:', error);
+    }
+  };
+
   return (
     <Layout className="layout">
       <HeaderApp showProject={true} />
@@ -258,8 +272,14 @@ const Project = () => {
           <div className="projects-header">Flussi esistenti</div>
           <div className="projects-container">
             {flows.length > 0 && flows?.map((flow) => (
-              <div onClick={() => {navigate(`/project/${project._id}/flow/${flow._id}`)}} key={flow._id} className="project-box">
+              <div onClick={() => {navigate(`/project/${project._id}/flow/${flow._id}`)}} key={flow._id} 
+              className={`project-box ${flow.default ? 'default-flow' : ''}`}>
                 {flow.name}
+                {flow.default ? <span>(Default)</span> : (
+                  <Button type="link" onClick={(e) => { e.stopPropagation(); setDefaultFlow(flow._id); }}>
+                    Imposta come default
+                  </Button>
+                )}
               </div>
             ))}
           </div>

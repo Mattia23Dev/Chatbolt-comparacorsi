@@ -37,7 +37,8 @@ const flowSchema = new Schema({
   nodes: [nodeSchema],
   edges: [edgeSchema],
   promptSaveInfo: { type: String },
-  tag: { type: String }
+  tag: { type: String },
+  default: { type: Boolean },
 });
 
 const Flow = mongoose.model('Flow', flowSchema);

@@ -22,4 +22,7 @@
     align-items: center;
     height: 100vh;
   }
+  .default-flow{
+    border: 1px solid rgb(96, 0, 0);
+  }
   
