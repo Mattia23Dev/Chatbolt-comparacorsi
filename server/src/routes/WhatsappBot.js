@@ -13,13 +13,13 @@ require('dotenv').config();
 
 const getFlowByPhoneNumber = async (phoneNumber) => {
     const project = await Project.findOne({ phoneNumberId: phoneNumber });
-    const flow = await Flow.findOne({projectId: project._id})
+    const flow = await Flow.findOne({projectId: project._id, default: true})
     return project ? {flow: flow, projectId: project._id, clientId: project.client, project: project} : null;
   };
 
   const getTokenByPhoneNumber = async (phoneNumber) => {
     const project = await Project.findOne({ phoneNumberId: phoneNumber });
-    const flow = await Flow.findOne({projectId: project._id})
+    const flow = await Flow.findOne({projectId: project._id, default: true})
     return project ? {token: project.tokenMeta, flow: flow} : null;
   }
 
