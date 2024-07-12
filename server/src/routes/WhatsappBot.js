@@ -37,7 +37,7 @@ const getFormattedDate = () => {
       1. Nome dell'utente
       2. Cognome dell'utente
       3. Email dell'utente
-      4. Riassunto della conversazione (massimo 10 parole)
+      4. Riassunto della conversazione
       5. Data e ora preferita per l'appuntamento (se menzionata)
   
       Per la data e l'ora dell'appuntamento, Oggi è: ${getFormattedDate()}:
