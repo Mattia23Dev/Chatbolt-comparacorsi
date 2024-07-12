@@ -11,7 +11,7 @@ exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sen
     }
   
     try {
-      let chat = await Chat.findOne({ numeroTelefono });
+      let chat = await Chat.findOne({ numeroTelefono, projectId });
   
       if (chat) {
         chat.messages.push({
@@ -78,14 +78,16 @@ exports.getUser = async ({numeroTelefono}) => {
   }
 }
 
-exports.saveInfoLeadDb = async ({
-  numeroTelefono, 
-  first_name, 
-  last_name, 
-  email, 
-  conversation_summary, 
-  appointment_date 
-}) => {
+exports.saveInfoLeadDb = async (userInfo) => {
+  const {
+    numeroTelefono,
+    first_name,
+    last_name,
+    email,
+    conversation_summary,
+    appointment_date,
+    customFields,
+  } = userInfo;
   if (!numeroTelefono) {
     throw new Error('Numero di telefono è obbligatorio');
   }
@@ -99,6 +101,17 @@ exports.saveInfoLeadDb = async ({
       lead.email = email || lead.email;
       lead.conversation_summary = conversation_summary || lead.conversation_summary;
       lead.appointment_date = appointment_date || lead.appointment_date;
+
+      if (customFields && customFields.length > 0) {
+        customFields.forEach(customField => {
+          const existingFieldIndex = lead.customFields.findIndex(field => field.name === customField.name);
+          if (existingFieldIndex >= 0) {
+            lead.customFields[existingFieldIndex].value = customField.value;
+          } else {
+            lead.customFields.push(customField);
+          }
+        });
+      }
 
       await lead.save();
     } else {

@@ -105,7 +105,7 @@ router.post('/get-lead-chat', async (req, res) => {
 
 // APP CHATBOLT FUNCTIONAL ROUTE
 router.post('/create-projects', async (req, res) => {
-  const { name, tokenMeta, numeroTelefono, client, clientName } = req.body;
+  const { name, tokenMeta, numeroTelefono, client, clientName, waAccountId, phoneNumberId } = req.body;
 
   if (!name || !client) {
     return res.status(400).json({ error: 'Name and client are required' });
@@ -117,7 +117,9 @@ router.post('/create-projects', async (req, res) => {
       tokenMeta,
       numeroTelefono,
       client,
-      clientName
+      clientName,
+      phoneNumberId,
+      waAccountId
     });
 
     await newProject.save();
@@ -188,7 +190,7 @@ router.put('/project/:id', async (req, res) => {
 //Flusso api
 
 router.post('/create-flow', async (req, res) => {
-  const { name, responseTime, prompt, projectId, promptSaveInfo } = req.body;
+  const { name, responseTime, prompt, projectId, promptSaveInfo, tag } = req.body;
 
   if (!name || !responseTime || !prompt || !projectId) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -203,6 +205,7 @@ router.post('/create-flow', async (req, res) => {
       nodes: defaultFlowData.nodes,
       edges: defaultFlowData.edges,
       promptSaveInfo,
+      tag
     });
 
     await flow.save();

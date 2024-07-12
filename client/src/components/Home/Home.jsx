@@ -64,6 +64,8 @@ const Home = () => {
         numeroTelefono: values.prefix + values.numeroTelefono,
         client: selectedSystem === 'AI' ? values.clientAssociation : selectedSystem === "ECP" ? 'ECP' : 'Bludental',
         clientName: selectedSystem === "AI" ? selectedClient.name : selectedSystem === "ECP" ? 'Comparacorsi' : 'Bludental',
+        phoneNumberId: values.phoneNumberId,
+        waAccountId: values.waAccountId,
       });
       
       const newProject = response.data;
@@ -145,6 +147,18 @@ const Home = () => {
                 <Input style={{ width: '83%' }} />
               </Form.Item>
             </Input.Group>
+          </Form.Item>
+          <Form.Item
+            label="Id cellulare"
+            name="phoneNumberId"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Account whatsapp associato al cellulare"
+            name="waAccountId"
+          >
+            <Input />
           </Form.Item>
           <Form.Item
           label="LeadSystem"

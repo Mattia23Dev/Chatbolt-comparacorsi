@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://chatbolt-comparacorsi-production.up.railway.app',
+  //baseURL: 'https://chatbolt-comparacorsi-production.up.railway.app',
+  baseURL: 'http://localhost:9000',
 });
 
 api.interceptors.request.use(

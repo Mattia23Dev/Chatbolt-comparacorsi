@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import { Avatar, List, Button, Form, Modal, Input } from 'antd';
+import { Avatar, List, Button, Form, Modal, Input, Row, Col } from 'antd';
 import { EditOutlined, UserOutlined } from '@ant-design/icons';
 import moment from 'moment'
 import api from '../../context/ApiContext';
@@ -40,7 +40,7 @@ const ContactInfo = ({ contact, updateContact }) => {
                 ...contactInfo,
                 ...values,
                 customFields: Object.keys(values)
-                    .filter(key => !['first_name', 'last_name', 'email', 'numeroTelefono', 'conversation_summary', 'appointment_date'].includes(key))
+                    .filter(key => !['first_name', 'last_name', 'email', 'numeroTelefono', 'conversation_summary', 'appointment_date', 'tag'].includes(key))
                     .map(key => ({ name: key, value: values[key] }))
             };
 
@@ -78,6 +78,9 @@ const ContactInfo = ({ contact, updateContact }) => {
                 <List.Item>
                     <List.Item.Meta title="Date & Time Appointment" description={contactInfo?.appointment_date} />
                 </List.Item>
+                <List.Item>
+                    <List.Item.Meta title="Tag" description={contactInfo?.tag} />
+                </List.Item>
                 {contactInfo?.customFields && contactInfo?.customFields.map((field) => (
                     <List.Item key={field.name}>
                         <List.Item.Meta title={field.name} description={field?.value} />
@@ -87,31 +90,52 @@ const ContactInfo = ({ contact, updateContact }) => {
 
             <Modal title="Edit Contact" visible={isModalVisible} onOk={handleOk} onCancel={handleCancel}>
                 <Form form={form} layout="vertical">
-                    <Form.Item name="first_name" label="First Name">
+                    <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item name="first_name" label="First Name">
                         <Input />
-                    </Form.Item>
-                    <Form.Item name="last_name" label="Last Name">
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="last_name" label="Last Name">
                         <Input />
-                    </Form.Item>
-                    <Form.Item name="email" label="Email">
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="email" label="Email">
                         <Input />
-                    </Form.Item>
-                    <Form.Item name="numeroTelefono" label="Phone">
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="numeroTelefono" label="Phone">
                         <Input />
-                    </Form.Item>
-                    <Form.Item name="conversation_summary" label="Conversation Summary">
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="conversation_summary" label="Conversation Summary">
                         <Input />
-                    </Form.Item>
-                    <Form.Item name="appointment_date" label="Appointment Date">
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="appointment_date" label="Appointment Date">
                         <Input />
-                    </Form.Item>
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="tag" label="Tag">
+                        <Input />
+                        </Form.Item>
+                    </Col>
                     {contact?.customFields && contact.customFields.map(field => (
-                        <Form.Item key={field.name} name={field.name} label={field.name}>
+                        <Col span={12} key={field.name}>
+                        <Form.Item name={field.name} label={field.name}>
                             <Input />
                         </Form.Item>
+                        </Col>
                     ))}
+                    </Row>
                 </Form>
-            </Modal>
+                </Modal>
         </div>
     );
 };

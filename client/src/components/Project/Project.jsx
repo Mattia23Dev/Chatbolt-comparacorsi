@@ -15,6 +15,7 @@ const LeadFieldModal = ({ visible, onCancel, projectId, project }) => {
   const [customFields, setCustomFields] = useState(project.customFields || []);
   const [fieldName, setFieldName] = useState('');
   const [fieldType, setFieldType] = useState('');
+  const [fieldDescription, setFieldDescription] = useState('');
 
   const predefinedFields = [
     { label: 'First Name', value: 'Text' },
@@ -26,9 +27,10 @@ const LeadFieldModal = ({ visible, onCancel, projectId, project }) => {
   ];
 
   const addCustomField = () => {
-    setCustomFields([...customFields, { name: fieldName, type: fieldType }]);
+    setCustomFields([...customFields, { name: fieldName, type: fieldType, description: fieldDescription }]);
     setFieldName('');
     setFieldType('');
+    setFieldDescription('');
   };
 
   const handleSubmit = async () => {
@@ -54,6 +56,7 @@ const LeadFieldModal = ({ visible, onCancel, projectId, project }) => {
       onCancel={onCancel}
       onOk={handleSubmit}
       okText="Submit"
+      width={"50%"}
     >
       <List
         header={<div>Predefined Fields</div>}
@@ -87,6 +90,12 @@ const LeadFieldModal = ({ visible, onCancel, projectId, project }) => {
             <Option value="object">Object</Option>
             <Option value="array">Array</Option>
           </Select>
+          <Input.TextArea
+            placeholder="Description"
+            value={fieldDescription}
+            onChange={(e) => setFieldDescription(e.target.value)}
+            style={{ width: '100%' }}
+          />
           <Button type="dashed" onClick={addCustomField} icon={<PlusOutlined />}>
             Add
           </Button>
@@ -98,9 +107,10 @@ const LeadFieldModal = ({ visible, onCancel, projectId, project }) => {
             dataSource={customFields}
             renderItem={(item, index) => (
               <List.Item>
-                <div style={{ flex: 1 }}>
+                <Space style={{ flex: 1 }}>
                   <Text strong>{item.name}:</Text> {item.type}
-                </div>
+                  <Text>{item.description}</Text>
+                </Space>
                 <Button
                   type="link"
                   icon={<DeleteOutlined />}
@@ -204,7 +214,8 @@ const Project = () => {
         prompt: values.prompt,
         promptSaveInfo: values.promptSaveInfo,
         projectId: projectId,
-        flowType: values.flowType
+        flowType: values.flowType,
+        tag: values.tag
       });
       
       const newFlow = response.data;
@@ -393,6 +404,13 @@ const Project = () => {
             rules={[{ required: true, message: 'Please input the response time!' }]}
           >
             <Input type="number" />
+          </Form.Item>
+          <Form.Item
+            label="Tag"
+            name="tag"
+            rules={[{ required: true, message: 'Please input the response time!' }]}
+          >
+            <Input />
           </Form.Item>
           <Form.Item
             label="Prompt"

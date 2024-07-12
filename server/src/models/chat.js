@@ -4,6 +4,7 @@ const {Schema} = mongoose;
 const customFieldSchema = new Schema({
   name: { type: String, required: true },
   type: { type: String, required: true },
+  description: {type: String, required: true},
   value: Schema.Types.Mixed
 });
 
@@ -32,6 +33,7 @@ const chatSchema = new Schema({
   active: {type: Boolean, default: true},
   favorite: {type: Boolean, default: false},
   customFields: [customFieldSchema],
+  tag: { type: String },
 });
 
 const Chat = mongoose.model('Chat', chatSchema);

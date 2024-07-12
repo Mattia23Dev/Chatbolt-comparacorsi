@@ -52,18 +52,27 @@ const getFormattedDate = () => {
       `;
       project.customFields.forEach((field, index) => {
         prompt += `
-        ${index + 6}. ${field.name}
+        ${index + 6}. ${field.name}: ${field.description ? field.description : ''}
         `;
       });
     }
   
     prompt += `
-      Fornisci le informazioni estratte nel seguente formato JSON, senza alcun testo aggiuntivo o formattazione:
-      {"first_name":"","last_name":"","email":"","conversation_summary":"","appointment_date":"", ${project.customFields.map(field => `"${field.name}":""`).join(', ')}}
-  
-      Assicurati di riempire i campi solo con le informazioni disponibili, lasciando vuoti quelli per cui non ci sono informazioni.
-      Per il campo appointment_date, usa sempre il formato DD-MM-YYYY HH:mm.
-    `;
+    Fornisci le informazioni estratte nel seguente formato JSON, senza alcun testo aggiuntivo o formattazione:
+    {
+      "first_name": "",
+      "last_name": "",
+      "email": "",
+      "conversation_summary": "",
+      "appointment_date": "",
+      "customFields": {
+        ${project.customFields.map(field => `"${field.name}": ""`).join(', ')}
+      }
+    }
+
+    Assicurati di riempire i campi solo con le informazioni disponibili, lasciando vuoti quelli per cui non ci sono informazioni.
+    Per il campo appointment_date, usa sempre il formato DD-MM-YYYY HH:mm.
+  `;
   
     return prompt;
   };
