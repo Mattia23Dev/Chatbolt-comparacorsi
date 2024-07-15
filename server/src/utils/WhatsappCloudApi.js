@@ -370,19 +370,20 @@ module.exports = class WhatsappCloudApi {
     }
 };
 
-module.exports.sendTemplateMessage = async (templateName, languageCode, parameters) => {
+module.exports.sendTemplateMessage = async (templateName, languageCode, parameters, phoneNumberId, phoneDestination) => {
+    console.log(parameters)
     try {
         const response = await axios({
             method: 'POST',
             //url: `https://graph.facebook.com/${this.graphApiVersion}/${this.senderBusinessPhoneId}/messages?access_token=${this.bearerToken}`,
-            url: `https://graph.facebook.com/v20.0/356948087500420/messages?access_token=${process.env.META_TOKEN}`,
+            url: `https://graph.facebook.com/v20.0/${phoneNumberId}/messages?access_token=${process.env.META_TOKEN}`,
             headers: {
                 'Content-Type': 'application/json'
             },
             data: {
-                messaging_product: 'whatsapp', //this.messagingProduct,
+                messaging_product: 'whatsapp',
                 recipient_type: 'individual',
-                to: '393313869850' ,//this.recipientPhoneNumber,
+                to: phoneDestination,
                 type: 'template',
                 template: {
                     name: templateName,
@@ -392,7 +393,7 @@ module.exports.sendTemplateMessage = async (templateName, languageCode, paramete
                     components: [
                         {
                             type: 'body',
-                            parameters: parameters
+                            parameters: parameters,
                         }
                     ]
                 }

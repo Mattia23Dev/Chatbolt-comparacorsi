@@ -9,6 +9,7 @@ const { format } = require('date-fns');
 const { getIO } = require('../utils/WebSocket');
 const Project = require('../models/project');
 const Flow = require('../models/flow');
+const Chat = require('../models/chat');
 require('dotenv').config();
 
 const getFlowByPhoneNumber = async (phoneNumber) => {
@@ -21,6 +22,15 @@ const getFlowByPhoneNumber = async (phoneNumber) => {
     const project = await Project.findOne({ phoneNumberId: phoneNumber });
     const flow = await Flow.findOne({projectId: project._id, default: true})
     return project ? {token: project.tokenMeta, flow: flow} : null;
+  }
+
+  const getChatByPhoneNumber = async (phoneNumber, numeroTelefono) => {
+    const project = await Project.findOne({ phoneNumberId: phoneNumber });
+    const chat = await Chat.findOne({numeroTelefono: numeroTelefono, projectId: project._id})
+    console.log(chat.tag)
+    const flowDefault = await Flow.findOne({projectId: project._id, default: true})
+    const flow = chat && chat.tag ? await Flow.findOne({projectId: project._id, tag: chat.tag}) : await Flow.findOne({projectId: project._id, default: true});
+    return project ? {chat: chat ? chat : null, flow: flow ? flow : flowDefault} : null;
   }
 
 const getFormattedDate = () => {
@@ -98,10 +108,10 @@ const waitAction = (node) => {
     return replyToUser;
   };
   
-  const saveInfo = async (node, userInfo) => {
+  const saveInfo = async (node, userInfo, projectId) => {
     console.log('Salvo info nel db')
-    const savedLead = await saveInfoLeadDb(userInfo);
-    console.log('Informazioni del lead salvate/aggiornate:', savedLead);
+    const savedLead = await saveInfoLeadDb(userInfo, projectId);
+    console.log('Informazioni del lead salvate/aggiornate');
   };
   
   const saveInfoPrompt = async (node, messagesContent, project) => {
@@ -148,7 +158,7 @@ const waitAction = (node) => {
           break;
   
         case 'saveInfo':
-          await saveInfo(node, userInfo);
+          await saveInfo(node, userInfo, projectId);
           break;
   
         case 'responseLLM':
@@ -186,7 +196,8 @@ const waitAction = (node) => {
         console.log("Entrando nel ciclo messaggi")
       const phoneNumberId = messages[0].phoneNumberId;
       const existingChat = await getChat({ numeroTelefono });
-      const { flow, projectId, clientId, project } = await getFlowByPhoneNumber(phoneNumberId);
+      const { projectId, clientId, project } = await getFlowByPhoneNumber(phoneNumberId);
+      const { flow } = await getChatByPhoneNumber(phoneNumberId, numeroTelefono)
   
       if (existingChat && existingChat.active === false) {
         console.log('Non attivo ma salvo');
@@ -250,11 +261,11 @@ const waitAction = (node) => {
   module.exports = router.post('/', async (req, res) => {
     try {
       const data = req.body;
-  
+
       if (data.object) {
         const phoneNumberId = data.entry[0].changes[0].value.metadata.phone_number_id;
         console.log(phoneNumberId);
-        const {token, flow} = await getTokenByPhoneNumber(phoneNumberId);
+        const {token} = await getTokenByPhoneNumber(phoneNumberId);
         const isNewMessage = data.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
         if (isNewMessage) {
           const Whatsapp = new WhatsappCloudAPI({
@@ -264,6 +275,7 @@ const waitAction = (node) => {
           });
   
           const numeroTelefono = Whatsapp.getRecipientPhoneNumber();
+          const {flow} = await getChatByPhoneNumber(phoneNumberId, numeroTelefono)
           const messageId = Whatsapp.getMessage().id;
           const name = Whatsapp.getRecipientName();
   

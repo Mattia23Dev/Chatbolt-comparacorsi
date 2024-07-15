@@ -43,10 +43,10 @@ const Chat = () => {
     const filterChats = () => {
       const query = searchQuery.toLowerCase();
       const filtered = chats.filter(chat => 
-        chat.first_name.toLowerCase().includes(query) ||
-        chat.last_name.toLowerCase().includes(query) ||
-        chat.email.toLowerCase().includes(query) ||
-        chat.numeroTelefono.toLowerCase().includes(query)
+        chat.first_name?.toLowerCase().includes(query) ||
+        chat.last_name?.toLowerCase().includes(query) ||
+        chat.email?.toLowerCase().includes(query) ||
+        chat.numeroTelefono?.toLowerCase().includes(query)
       );
       setFilteredChats(filtered);
     };

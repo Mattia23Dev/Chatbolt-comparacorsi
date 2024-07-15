@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Button, Modal, Form, Input, Select, Spin, message, Typography, List, Space } from 'antd';
-import { SettingOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SettingOutlined, PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import HeaderApp from '../Header/Header';
 import './project.css';
 import axios from 'axios'
+import { Editor } from '@tinymce/tinymce-react'; // Usando TinyMCE come editor di email
 import api from '../../context/ApiContext';
 
 const { Content } = Layout;
 const { Option } = Select;
 const { Text } = Typography;
+const { TextArea } = Input;
 
 const LeadFieldModal = ({ visible, onCancel, projectId, project }) => {
   const [customFields, setCustomFields] = useState(project.customFields || []);
@@ -125,16 +127,208 @@ const LeadFieldModal = ({ visible, onCancel, projectId, project }) => {
   );
 };
 
+const TriggerForm = ({ visible, onCancel, onSave, triggerData, templates, flows }) => {
+  const [form] = Form.useForm();
+  const [selectedComponent, setSelectedComponent] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [parameters, setParameters] = useState([]);
+
+  useEffect(() => {
+    if (visible) {
+      if (triggerData) {
+        form.setFieldsValue(triggerData);
+      } else {
+        form.resetFields();
+      }
+    }
+  }, [visible, triggerData, form]);
+
+  const handleSave = async (values) => {
+    values.parameters = parameters;
+    values.selectedComponent = selectedComponent;
+    values.selectedTemplate = selectedTemplate;
+    onSave(values);
+  };
+
+  const handleTemplateSelect = (value) => {
+    const selectedTemplate = templates.find(t => t.name === value);
+    console.log(selectedTemplate)
+    setSelectedTemplate(selectedTemplate)
+    form.setFieldsValue({ templateWhatsapp: selectedTemplate.name });
+    setSelectedComponent(null);
+    setParameters([]);
+  };
+
+  const handleComponentSelect = (value) => {
+    console.log(value)
+    const component = selectedTemplate.components.find(c => c.text === value);
+    console.log(component)
+    setSelectedComponent(component);
+
+    const matches = component.text.match(/{{\d+}}/g) || [];
+    console.log(matches)
+    setParameters(matches.map(() => ''));
+  };
+
+  const handleParameterChange = (index, event) => {
+    const newParameters = [...parameters];
+    newParameters[index] = event.target.value;
+    setParameters(newParameters);
+  };
+
+  const handleActionTypeChange = (value) => {
+    console.log(value)
+    form.setFieldsValue({ actionType: value });
+    if (value !== 'whatsapp') {
+      form.setFieldsValue({ templateWhatsapp: null, selectedComponent: null });
+      setSelectedComponent(null);
+      setParameters([]);
+    }
+  };
+
+  return (
+    <Modal
+      title={triggerData ? 'Modifica Trigger' : 'Crea Trigger'}
+      visible={visible}
+      onCancel={() => { onCancel(); form.resetFields(); }}
+      footer={[
+        <Button key="cancel" onClick={() => { onCancel(); form.resetFields(); }}>
+          Annulla
+        </Button>,
+        <Button key="save" type="primary" onClick={() => form.submit()}>
+          {triggerData ? 'Salva Modifiche' : 'Crea Trigger'}
+        </Button>
+      ]}
+    >
+      <Form form={form} layout="vertical" initialValues={triggerData} onFinish={handleSave}>
+        <Form.Item label="Trigger name" name="triggerName" rules={[{ required: true, message: 'Inserisci il nome' }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item label="Trigger Start" name="triggerStart" rules={[{ required: true, message: 'Inserisci il Trigger Start' }]}>
+          <Select>
+            <Option value="1">Lead entrata da contattare</Option>
+            <Option value="2">Lead su non risponde</Option>
+            <Option value="3">Lead su lead persa</Option>
+            <Option value="4">Lead su venduto/fissato</Option>
+          </Select>
+        </Form.Item>
+        <Form.Item label="Action Type" name="actionType" rules={[{ required: true, message: 'Seleziona il tipo di azione' }]}>
+          <Select onChange={handleActionTypeChange}>
+            <Option value="whatsapp">Invia Messaggio WhatsApp</Option>
+            <Option value="email">Invia Email</Option>
+          </Select>
+        </Form.Item>
+        {form.getFieldValue('actionType') === 'whatsapp' && (
+          <>
+            <Form.Item label="Template WhatsApp" name="templateWhatsapp" rules={[{ required: true, message: 'Seleziona un template WhatsApp' }]}>
+              <Select onChange={handleTemplateSelect}>
+                {Array.isArray(templates) && templates.length > 0 && templates.map((template) => (
+                  <Option key={template.name} value={template.name}>{template.name}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+            {form.getFieldValue('templateWhatsapp') && (
+              <Form.Item label="Componenti del Template" name="selectedComponent">
+                <Select onChange={handleComponentSelect}>
+                  {selectedTemplate && selectedTemplate?.components?.map((component, index) => (
+                    <Option key={index} value={component.text}>{component.text}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )}
+            {selectedComponent && parameters.map((param, index) => (
+              <Form.Item key={index} label={`Parametro ${index + 1}`}>
+                <Input value={param} onChange={(e) => handleParameterChange(index, e)} />
+              </Form.Item>
+            ))}
+          </>
+        )}
+
+        {form.getFieldValue('actionType') === 'email' && (
+          <Form.Item label="Email Copy" name="templateEmail" rules={[{ required: true, message: 'Inserisci il contenuto dell\'email' }]}>
+            <TextArea rows={4} />
+          </Form.Item>
+        )}
+        <Form.Item label="Tag" name="tag">
+          <Input />
+        </Form.Item>
+        <Form.Item label="Flusso associato" name="flowId" rules={[{ required: true, message: 'Seleziona un flusso associato' }]}>
+          <Select>
+            {Array.isArray(flows) && flows.length > 0 && flows.map((flow) => (
+              <Option key={flow._id} value={flow._id}>{flow.name}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+};
+
 const Project = () => {
   const { projectId } = useParams();
+  const [form] = Form.useForm();
   const navigate = useNavigate()
   const [project, setProject] = useState(null);
+  const [triggers, setTriggers] = useState([]);
   const [projectModalVisible, setProjectModalVisible] = useState(false);
   const [leadVisible, setLeadVisible] = useState(false);
+  const [triggerVisible, setTriggerVisible] = useState(false);
   const [flowModalVisible, setFlowModalVisible] = useState(false);
   const [flows, setFlows] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [clients, setClients] = useState([]);
+
+  const [templates, setTemplates] = useState([])
+  const [selectedTrigger, setSelectedTrigger] = useState(null);
+  const [triggerData, setTriggerData] = useState({
+    triggerName: '',
+    triggerStart: '',
+    actionType: 'whatsapp',
+    templateWhatsapp: {},
+    templateEmail: {},
+    clientId: project?.client,
+    projectId: projectId,
+    flowId: '',
+    tag: '',
+    selectedComponent: {},
+    parameters: [],
+  });
+
+  const handleCreateTrigger = async () => {
+    try {
+      const response = await api.post('/api/create-trigger', triggerData);
+      console.log(response)
+      form.resetFields();
+      setTriggerVisible(false)
+    } catch (error) {
+      console.error(error)
+    }
+  };
+
+  const handleFormChange = (changedValues) => {
+    setTriggerData({
+      ...triggerData,
+      ...changedValues
+    });
+  };
+
+  const handleTemplateSelect = (value) => {
+    const selectedTemplate = templates.find(template => template.name === value);
+    setTriggerData(prevState => ({
+      ...prevState,
+      templateWhatsapp: selectedTemplate || {}
+    }));
+  };
+
+  const fetchTriggers = async () => {
+    try {
+      const response = await api.get(`/api/triggers/${projectId}`);
+      console.log(response)
+      setTriggers(response.data);
+    } catch (error) {
+      console.error(error)
+    }
+  };
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -151,6 +345,16 @@ const Project = () => {
     fetchClients();
   }, []);
 
+  const handleGetTemplates = async (flows, project) => {
+    try {
+      const response = await api.post(`/api/flows/${flows[0]?._id}/get-template`, { numeroTelefono: project?.numeroTelefono });
+      console.log(response.data.data)
+      setTemplates(response.data.data);
+    } catch (error) {
+      console.error('Error getting templates:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchProjectAndFlow = async () => {
       try {
@@ -158,6 +362,11 @@ const Project = () => {
         setProject(response.data.project);
         setFlows(response.data.flows);
         setIsLoading(false)
+        setTriggerData(prevState => ({
+          ...prevState,
+          clientId: response.data.project.client
+        }));
+        await handleGetTemplates(response.data.flows, response.data.project)
       } catch (error) {
         console.error('Error fetching project:', error);
         setIsLoading(false)
@@ -165,6 +374,7 @@ const Project = () => {
     };
 
     fetchProjectAndFlow();
+    fetchTriggers();
   }, [projectId]);
 
   const showProjectModal = () => {
@@ -173,6 +383,10 @@ const Project = () => {
 
   const showLeadModal = () => {
     setLeadVisible(true);
+  };
+
+  const showTriggerModal = () => {
+    setTriggerVisible(true);
   };
 
   const handleProjectCancel = () => {
@@ -196,6 +410,30 @@ const Project = () => {
       console.error('Error updating project:', error);
       message.error('Failed to update project.');
     }
+  };
+
+  const handleUpdateTrigger = async (values) => {
+    try {
+      const response = await api.put(`/api/triggers/${selectedTrigger._id}`, values);
+      setTriggers((prevTriggers) =>
+        prevTriggers.map((trigger) =>
+          trigger._id === response.data._id ? response.data : trigger
+        )
+      );
+      setTriggerVisible(false);
+    } catch (error) {
+      console.log(error)
+    }
+  };
+
+  const handleTriggerClick = (trigger) => {
+    setSelectedTrigger(trigger);
+    setTriggerVisible(true);
+  };
+
+  const handleCancel = () => {
+    setTriggerVisible(false);
+    setSelectedTrigger(null);
   };
 
   const showFlowModal = () => {
@@ -255,15 +493,22 @@ const Project = () => {
     <Layout className="layout">
       <HeaderApp showProject={true} />
       <Content className='content'>
-        <div className="project-settings">
-          <Button type="primary" icon={<SettingOutlined />} onClick={showProjectModal}>
-            Modifica progetto
-          </Button>
-        </div>
-        <div className="project-settings">
-          <Button type="primary" icon={<SettingOutlined />} onClick={showLeadModal}>
-            Modifica campi lead
-          </Button>
+        <div className='project-settings'>
+          <div className="project-settings">
+            <Button type="primary" icon={<EditOutlined />} onClick={showProjectModal}>
+              Modifica progetto
+            </Button>
+          </div>
+          <div className="project-settings">
+            <Button type="primary" icon={<SettingOutlined />} onClick={showLeadModal}>
+              Modifica campi lead
+            </Button>
+          </div>
+          <div className="project-settings">
+            <Button type="primary" icon={<SettingOutlined />} onClick={showTriggerModal}>
+              Crea Trigger
+            </Button>
+          </div>
         </div>
         <div className="site-layout-content">
           <Button type="primary" icon={<PlusOutlined />} onClick={showFlowModal}>
@@ -280,6 +525,17 @@ const Project = () => {
                     Imposta come default
                   </Button>
                 )}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="site-layout-content">
+          <div className="projects-header">Trigger esistenti</div>
+          <div className="projects-container">
+            {triggers.length > 0 && triggers?.map((trigger) => (
+              <div onClick={() => handleTriggerClick(trigger)} key={trigger._id} 
+              className={`project-box`}>
+                {trigger.triggerName}
               </div>
             ))}
           </div>
@@ -453,6 +709,14 @@ const Project = () => {
           </Form.Item>
         </Form>
       </Modal>
+      <TriggerForm
+        visible={triggerVisible}
+        onCancel={handleCancel}
+        onSave={selectedTrigger ? handleUpdateTrigger : handleCreateTrigger}
+        triggerData={selectedTrigger || triggerData}
+        templates={templates}
+        flows={flows}
+      />
       <LeadFieldModal
         visible={leadVisible}
         onCancel={() => setLeadVisible(false)}

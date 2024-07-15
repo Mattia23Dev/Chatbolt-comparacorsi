@@ -2,6 +2,7 @@ const Chat = require('../models/chat');
 const Flow = require('../models/flow');
 const Lead = require('../models/lead');
 const Project = require('../models/project');
+const Trigger = require('../models/trigger');
 const { saveMessageOrChat } = require('../utils/MongoDB');
 const { defaultFlowData } = require('../utils/UtilsData');
 const { sendTextMessageOutbound, getMessageTemplates } = require('../utils/WhatsappCloudApi');
@@ -406,6 +407,65 @@ router.post('/update-contact/:id', async (req, res) => {
   } catch (error) {
       console.error('Error updating contact:', error);
       res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+//Trigger
+router.post('/create-trigger', async (req, res) => {
+  try {
+    const {
+      triggerStart,
+      actionType,
+      templateWhatsapp,
+      templateEmail,
+      clientId,
+      projectId,
+      flowId,
+      tag,
+      triggerName
+    } = req.body;
+
+    const newTrigger = new Trigger({
+      triggerStart,
+      actionType,
+      templateWhatsapp,
+      templateEmail,
+      clientId,
+      projectId,
+      flowId,
+      tag,
+      triggerName
+    });
+    const savedTrigger = await newTrigger.save();
+
+    res.status(201).json(savedTrigger);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nella creazione del trigger.' });
+  }
+});
+
+router.get('/triggers/:projectId', async (req, res) => {
+  const { projectId } = req.params;
+  try {
+    const triggers = await Trigger.find({ projectId });
+    res.status(200).json(triggers);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero dei trigger.' });
+  }
+});
+
+router.put('/triggers/:id', async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body;
+
+  try {
+    const updatedTrigger = await Trigger.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updatedTrigger) {
+      return res.status(404).json({ error: 'Trigger non trovato.' });
+    }
+    res.status(200).json(updatedTrigger);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nella modifica del trigger.' });
   }
 });
 
