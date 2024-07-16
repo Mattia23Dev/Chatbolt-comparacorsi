@@ -22,7 +22,7 @@ const server = http.createServer(app);
 init(server);
 //ssh -p 443 -R0:localhost:9000 -L4300:localhost:4300 qr@a.pinggy.io
 
-//https://chatbolt-comparacorsi-production.up.railway.app/whatsapp_callback_url
+//https://chatbolt-comparacorsi-production.up.railway.app/custom-bot
 const connectToMongoDB = async () => {
     try {
         await mongoose.connect(process.env.DB_URL, {

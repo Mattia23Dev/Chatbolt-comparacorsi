@@ -174,7 +174,8 @@ exports.saveInfoLeadDb = async (userInfo, projectId, {noSaveLs}) => {
         console.log("Commerciale")
         if (numeroTelefono && conversation_summary && first_name){
           try {
-            await axios.post('http://localhost:8001/chatbolt/save-chatbolt-lead', {
+            //await axios.post('http://localhost:8001/chatbolt/save-chatbolt-lead', {
+            await axios.post('https://server-chatbot-ai-production.up.railway.app/chatbolt/save-chatbolt-lead', {
               numeroTelefono,
               appointment_date,
               conversation_summary,
