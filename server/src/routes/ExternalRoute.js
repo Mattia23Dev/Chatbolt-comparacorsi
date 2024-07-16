@@ -424,6 +424,7 @@ router.post('/create-trigger', async (req, res) => {
       tag,
       triggerName
     } = req.body;
+    console.log(req.body)
 
     const newTrigger = new Trigger({
       triggerStart,
@@ -440,6 +441,7 @@ router.post('/create-trigger', async (req, res) => {
 
     res.status(201).json(savedTrigger);
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error: 'Errore nella creazione del trigger.' });
   }
 });

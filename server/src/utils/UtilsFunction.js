@@ -1,4 +1,4 @@
-const { saveMessageOrChat, saveInfoLeadDb } = require("./MongoDB");
+const { saveInfoLeadDb, saveMessageOrChat } = require("./MongoDB");
 const { sendTemplateMessage } = require("./WhatsappCloudApi");
 
 exports.extractJSONFromOpenAIResponse = (response) => {
@@ -66,26 +66,32 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
         let params = [];
           if (hasParameters) {
             params = template.components.map((component, index) => ({
-              text: `${userInfo.nome}`
+              type: 'text',
+              text: `${userInfo.first_name}`,
             }));
           }
-        const personalizedMessage = replacePlaceholder(message, userInfo.nome);
+        const personalizedMessage = replacePlaceholder(message, userInfo.first_name);
+          console.log(userInfo._id, flow?._id, projectId, clientId, phoneDestination, personalizedMessage, trigger?.tag)
+          try {
+            await saveMessageOrChat({
+                userId: userInfo._id,
+                leadId: userInfo._id,
+                flowId: flow?._id,
+                projectId: projectId,
+                clientId: clientId,
+                numeroTelefono: phoneDestination,
+                content: personalizedMessage,
+                sender: 'user',
+                tag: trigger.tag,
+              });
 
-        const chat = await saveMessageOrChat({
-            userId: userInfo._id,
-            leadId: userInfo._id,
-            flowId: flow?._id,
-            projectId: projectId,
-            clientId: clientId,
-            numeroTelefono: phoneDestination,
-            content: personalizedMessage,
-            sender: 'user',
-            tag: trigger.tag,
-          });
+            await saveInfoLeadDb(userInfo, projectId, {noSaveLs: true})
+            
+            await sendTemplateMessage(templateName, template?.language, params, phoneNumberId, phoneDestination);            
+          } catch (error) {
+            console.error(error)
+          }
 
-        await saveInfoLeadDb(userInfo, projectId)
-        
-        await sendTemplateMessage(templateName, template?.language, params, phoneNumberId, phoneDestination);
         break;
   
       default:

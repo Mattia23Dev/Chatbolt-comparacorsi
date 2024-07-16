@@ -129,45 +129,77 @@ const LeadFieldModal = ({ visible, onCancel, projectId, project }) => {
 
 const TriggerForm = ({ visible, onCancel, onSave, triggerData, templates, flows }) => {
   const [form] = Form.useForm();
+  const [selectedProvider, setSelectedProvider] = useState(triggerData?.actionType || "");
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [parameters, setParameters] = useState([]);
+  const [formData, setFormData] = useState({
+    triggerName: triggerData?.triggerName || '',
+    triggerStart: triggerData?.triggerStart || '',
+    actionType: triggerData?.actionType || '',
+    templateWhatsapp: triggerData?.templateWhatsapp || '',
+    templateEmail: triggerData?.templateEmail || '',
+    tag: triggerData?.tag || '',
+    flowId: triggerData?.flowId || '',
+    clientId: triggerData?.clientId,
+    projectId: triggerData?.projectId,
+  });
 
   useEffect(() => {
     if (visible) {
       if (triggerData) {
-        form.setFieldsValue(triggerData);
+        setFormData({
+          triggerName: triggerData.triggerName,
+          triggerStart: triggerData.triggerStart,
+          actionType: triggerData.actionType,
+          templateWhatsapp: triggerData.templateWhatsapp,
+          templateEmail: triggerData.templateEmail,
+          tag: triggerData.tag,
+          flowId: triggerData.flowId,
+          clientId: triggerData?.clientId,
+          projectId: triggerData?.projectId,
+        });
+        setSelectedProvider(triggerData?.actionType);
+        if (triggerData?.templateWhatsapp) {
+          setSelectedTemplate(triggerData?.templateWhatsapp);
+          if (triggerData?.selectedComponent) {
+            setSelectedComponent(triggerData?.selectedComponent);
+            const matches = triggerData?.selectedComponent?.text?.match(/{{\d+}}/g) || [];
+            setParameters(matches?.map(() => ''));
+          }
+        }
       } else {
         form.resetFields();
       }
     }
-  }, [visible, triggerData, form]);
+  }, [visible, triggerData]);
 
-  const handleSave = async (values) => {
-    values.parameters = parameters;
-    values.selectedComponent = selectedComponent;
-    values.selectedTemplate = selectedTemplate;
+  const handleSave = async () => {
+    const values = {
+      ...formData,
+      parameters,
+      selectedComponent,
+      selectedTemplate
+    };
+    console.log(values)
     onSave(values);
   };
 
   const handleTemplateSelect = (value) => {
     const selectedTemplate = templates.find(t => t.name === value);
+    setSelectedTemplate(selectedTemplate);
     console.log(selectedTemplate)
-    setSelectedTemplate(selectedTemplate)
-    form.setFieldsValue({ templateWhatsapp: selectedTemplate.name });
+    setFormData({ ...formData, templateWhatsapp: selectedTemplate });
     setSelectedComponent(null);
     setParameters([]);
   };
 
   const handleComponentSelect = (value) => {
-    console.log(value)
-    const component = selectedTemplate.components.find(c => c.text === value);
-    console.log(component)
+    const component = selectedTemplate?.components?.find(c => c.text === value);
     setSelectedComponent(component);
 
-    const matches = component.text.match(/{{\d+}}/g) || [];
-    console.log(matches)
-    setParameters(matches.map(() => ''));
+    const matches = component?.text?.match(/{{\d+}}/g) || [];
+    setParameters(matches?.map(() => ''));
   };
 
   const handleParameterChange = (index, event) => {
@@ -177,10 +209,10 @@ const TriggerForm = ({ visible, onCancel, onSave, triggerData, templates, flows 
   };
 
   const handleActionTypeChange = (value) => {
-    console.log(value)
-    form.setFieldsValue({ actionType: value });
+    setSelectedProvider(value);
+    setFormData({ ...formData, actionType: value });
     if (value !== 'whatsapp') {
-      form.setFieldsValue({ templateWhatsapp: null, selectedComponent: null });
+      setFormData({ ...formData, templateWhatsapp: null, selectedComponent: null });
       setSelectedComponent(null);
       setParameters([]);
     }
@@ -195,17 +227,17 @@ const TriggerForm = ({ visible, onCancel, onSave, triggerData, templates, flows 
         <Button key="cancel" onClick={() => { onCancel(); form.resetFields(); }}>
           Annulla
         </Button>,
-        <Button key="save" type="primary" onClick={() => form.submit()}>
+        <Button key="save" type="primary" onClick={handleSave}>
           {triggerData ? 'Salva Modifiche' : 'Crea Trigger'}
         </Button>
       ]}
     >
-      <Form form={form} layout="vertical" initialValues={triggerData} onFinish={handleSave}>
+      <Form form={form} layout="vertical" initialValues={triggerData}>
         <Form.Item label="Trigger name" name="triggerName" rules={[{ required: true, message: 'Inserisci il nome' }]}>
-          <Input />
+          <Input value={formData.triggerName} onChange={(e) => setFormData({ ...formData, triggerName: e.target.value })} />
         </Form.Item>
         <Form.Item label="Trigger Start" name="triggerStart" rules={[{ required: true, message: 'Inserisci il Trigger Start' }]}>
-          <Select>
+          <Select value={formData.triggerStart} onChange={(value) => setFormData({ ...formData, triggerStart: value })}>
             <Option value="1">Lead entrata da contattare</Option>
             <Option value="2">Lead su non risponde</Option>
             <Option value="3">Lead su lead persa</Option>
@@ -213,47 +245,47 @@ const TriggerForm = ({ visible, onCancel, onSave, triggerData, templates, flows 
           </Select>
         </Form.Item>
         <Form.Item label="Action Type" name="actionType" rules={[{ required: true, message: 'Seleziona il tipo di azione' }]}>
-          <Select onChange={handleActionTypeChange}>
+          <Select value={formData.actionType} onChange={handleActionTypeChange}>
             <Option value="whatsapp">Invia Messaggio WhatsApp</Option>
             <Option value="email">Invia Email</Option>
           </Select>
         </Form.Item>
-        {form.getFieldValue('actionType') === 'whatsapp' && (
+        {selectedProvider === 'whatsapp' && (
           <>
             <Form.Item label="Template WhatsApp" name="templateWhatsapp" rules={[{ required: true, message: 'Seleziona un template WhatsApp' }]}>
-              <Select onChange={handleTemplateSelect}>
+              <Select value={formData.templateWhatsapp} onChange={handleTemplateSelect}>
                 {Array.isArray(templates) && templates.length > 0 && templates.map((template) => (
                   <Option key={template.name} value={template.name}>{template.name}</Option>
                 ))}
               </Select>
             </Form.Item>
-            {form.getFieldValue('templateWhatsapp') && (
+            {selectedTemplate && (
               <Form.Item label="Componenti del Template" name="selectedComponent">
                 <Select onChange={handleComponentSelect}>
-                  {selectedTemplate && selectedTemplate?.components?.map((component, index) => (
+                  {selectedTemplate?.components?.map((component, index) => (
                     <Option key={index} value={component.text}>{component.text}</Option>
                   ))}
                 </Select>
               </Form.Item>
             )}
-            {selectedComponent && parameters.map((param, index) => (
+            {selectedComponent && selectedComponent?.text?.match(/{{\d+}}/g)?.map((match, index) => (
               <Form.Item key={index} label={`Parametro ${index + 1}`}>
-                <Input value={param} onChange={(e) => handleParameterChange(index, e)} />
+                <Input value={parameters[index]} onChange={(e) => handleParameterChange(index, e)} />
               </Form.Item>
             ))}
           </>
         )}
 
-        {form.getFieldValue('actionType') === 'email' && (
+        {selectedProvider === 'email' && (
           <Form.Item label="Email Copy" name="templateEmail" rules={[{ required: true, message: 'Inserisci il contenuto dell\'email' }]}>
-            <TextArea rows={4} />
+            <TextArea value={formData.templateEmail} onChange={(e) => setFormData({ ...formData, templateEmail: e.target.value })} rows={4} />
           </Form.Item>
         )}
         <Form.Item label="Tag" name="tag">
-          <Input />
+          <Input value={formData.tag} onChange={(e) => setFormData({ ...formData, tag: e.target.value })} />
         </Form.Item>
         <Form.Item label="Flusso associato" name="flowId" rules={[{ required: true, message: 'Seleziona un flusso associato' }]}>
-          <Select>
+          <Select value={formData.flowId} onChange={(value) => setFormData({ ...formData, flowId: value })}>
             {Array.isArray(flows) && flows.length > 0 && flows.map((flow) => (
               <Option key={flow._id} value={flow._id}>{flow.name}</Option>
             ))}
@@ -283,7 +315,7 @@ const Project = () => {
   const [triggerData, setTriggerData] = useState({
     triggerName: '',
     triggerStart: '',
-    actionType: 'whatsapp',
+    actionType: '',
     templateWhatsapp: {},
     templateEmail: {},
     clientId: project?.client,
@@ -294,9 +326,9 @@ const Project = () => {
     parameters: [],
   });
 
-  const handleCreateTrigger = async () => {
+  const handleCreateTrigger = async (values) => {
     try {
-      const response = await api.post('/api/create-trigger', triggerData);
+      const response = await api.post('/api/create-trigger', values);
       console.log(response)
       form.resetFields();
       setTriggerVisible(false)

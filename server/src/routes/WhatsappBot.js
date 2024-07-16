@@ -27,9 +27,9 @@ const getFlowByPhoneNumber = async (phoneNumber) => {
   const getChatByPhoneNumber = async (phoneNumber, numeroTelefono) => {
     const project = await Project.findOne({ phoneNumberId: phoneNumber });
     const chat = await Chat.findOne({numeroTelefono: numeroTelefono, projectId: project._id})
-    console.log(chat.tag)
+    console.log(chat?.tag ? chat?.tag : "Nessun tag")
     const flowDefault = await Flow.findOne({projectId: project._id, default: true})
-    const flow = chat && chat.tag ? await Flow.findOne({projectId: project._id, tag: chat.tag}) : await Flow.findOne({projectId: project._id, default: true});
+    const flow = chat && chat?.tag ? await Flow.findOne({projectId: project._id, tag: chat.tag}) : await Flow.findOne({projectId: project._id, default: true});
     return project ? {chat: chat ? chat : null, flow: flow ? flow : flowDefault} : null;
   }
 
@@ -38,10 +38,14 @@ const getFormattedDate = () => {
     return format(now, 'dd-MM-yyyy HH:mm');
   };
 
-  const customPromptSave = (project, messagesContent) => {
+  const customPromptSave = (project, messagesContent, userInfoNow) => {
+    console.log(messagesContent)
     let prompt = `
       Messaggi precedenti:
       ${messagesContent}
+
+      Informazioni attuali: 
+      ${userInfoNow}
   
       Analizza la conversazione e estrai le seguenti informazioni:
       1. Nome dell'utente
@@ -110,13 +114,13 @@ const waitAction = (node) => {
   
   const saveInfo = async (node, userInfo, projectId) => {
     console.log('Salvo info nel db')
-    const savedLead = await saveInfoLeadDb(userInfo, projectId);
+    const savedLead = await saveInfoLeadDb(userInfo, projectId, {noSaveLs: false});
     console.log('Informazioni del lead salvate/aggiornate');
   };
   
-  const saveInfoPrompt = async (node, messagesContent, project) => {
+  const saveInfoPrompt = async (node, messagesContent, project, userInfoNow) => {
     console.log('Chiamo openai per salvataggio')
-    const customPrompt = customPromptSave(project, messagesContent)
+    const customPrompt = customPromptSave(project, messagesContent, userInfoNow)
     const openAIResponse = await Openai.saveInfoLead(customPrompt, node.data.prompt);
     const extractedInfo = await extractJSONFromOpenAIResponse(openAIResponse);
     return extractedInfo;
@@ -140,6 +144,8 @@ const waitAction = (node) => {
   };
 
   const processFlowNodes = async (nodes, messagesContent, sendTextMessage, project, numeroTelefono, flow, projectId, clientId, io) => {
+    let userInfoNow = await Chat.findOne({numeroTelefono, projectId}).select('first_name last_name email numeroTelefono appointment_date conversation_summary');
+    console.log(userInfoNow)
     let userInfo = { numeroTelefono };
     let replyToUser = '';
     console.log("Processando il ciclo dei nodi")
@@ -153,7 +159,7 @@ const waitAction = (node) => {
         //  break;
 
         case 'saveInfoPrompt':
-          const extractedInfo = await saveInfoPrompt(node, messagesContent, project);
+          const extractedInfo = await saveInfoPrompt(node, messagesContent, project, userInfoNow);
           userInfo = { ...userInfo, ...extractedInfo };
           break;
   
@@ -195,10 +201,10 @@ const waitAction = (node) => {
     for (const [numeroTelefono, messages] of Object.entries(messagesByPhone)) {
         console.log("Entrando nel ciclo messaggi")
       const phoneNumberId = messages[0].phoneNumberId;
-      const existingChat = await getChat({ numeroTelefono });
       const { projectId, clientId, project } = await getFlowByPhoneNumber(phoneNumberId);
-      const { flow } = await getChatByPhoneNumber(phoneNumberId, numeroTelefono)
-  
+      const { flow, chat } = await getChatByPhoneNumber(phoneNumberId, numeroTelefono)
+      const existingChat = chat;
+
       if (existingChat && existingChat.active === false) {
         console.log('Non attivo ma salvo');
         for (const msg of messages) {

@@ -4,7 +4,6 @@ const Trigger = require('../models/trigger');
 const Project = require('../models/project');
 const Flow = require('../models/flow');
 const { processTriggerNode } = require('../utils/UtilsFunction');
-const { sendTemplateMessage } = require('../utils/WhatsappCloudApi');
 
 router.post('/process-trigger/:userId', async (req, res) => {
     try {

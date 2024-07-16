@@ -3,15 +3,43 @@ require('dotenv').config();
 const Chat = require("../models/chat");
 const Lead = require("../models/lead");
 const createLeadModel = require('../models/lead');
+const Project = require('../models/project');
+const axios = require('axios');
+
+const findChatByPhoneNumber = (numeroTelefono) => {
+  numeroTelefono = numeroTelefono.replace(/\s+/g, '').replace(/[^0-9]/g, '');
+
+  let formattedNumbers = [];
+  if (numeroTelefono.length > 10) {
+    if (numeroTelefono.startsWith('+39')) {
+      formattedNumbers.push(numeroTelefono.replace(/^\+39/, ''));
+    } else if (numeroTelefono.startsWith('39')) {
+      formattedNumbers.push(numeroTelefono.replace(/^39/, ''));
+    }
+  } else {
+    formattedNumbers.push(numeroTelefono);
+  }
+
+  formattedNumbers = [
+    ...formattedNumbers,
+    '+39' + formattedNumbers[0],
+    '39' + formattedNumbers[0]
+  ];
+  return formattedNumbers
+};
 
 exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sender, manual, clientId, flowId, projectId, tag}) => {
 
     if (!userId || !leadId || !numeroTelefono || !content || !sender) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-  
+  console.log('Salvando')
     try {
-      let chat = await Chat.findOne({ numeroTelefono, projectId });
+      const formattedNumbers = findChatByPhoneNumber(numeroTelefono)
+      let chat = await Chat.findOne({
+        numeroTelefono: { $in: formattedNumbers },
+        projectId
+      });
   
       if (chat) {
         chat.messages.push({
@@ -79,7 +107,7 @@ exports.getUser = async ({numeroTelefono}) => {
   }
 }
 
-exports.saveInfoLeadDb = async (userInfo, projectId) => {
+exports.saveInfoLeadDb = async (userInfo, projectId, {noSaveLs}) => {
   const {
     numeroTelefono,
     first_name,
@@ -93,8 +121,17 @@ exports.saveInfoLeadDb = async (userInfo, projectId) => {
     throw new Error('Numero di telefono è obbligatorio');
   }
 
+  const formattedNumbers = findChatByPhoneNumber(numeroTelefono)
   try {
-    let lead = await Chat.findOne({ numeroTelefono, projectId });
+    let lead = await Chat.findOne({
+      numeroTelefono: { $in: formattedNumbers },
+      projectId
+    });
+    let project = await Project.findById(projectId)
+
+    if (!project){
+      console.log("Progetto non trovato")
+    }
 
     if (lead) {
       lead.first_name = first_name || lead.first_name;
@@ -128,19 +165,43 @@ exports.saveInfoLeadDb = async (userInfo, projectId) => {
       await lead.save();
     }
 
-    if (appointment_date && appointment_date?.trim() !== ""){
-      const secondDbConnection = await this.connectToSecondDatabase();  
-      const Lead = await createLeadModel(secondDbConnection);
-  
-      const lead = await Lead.findOne({numeroTelefono: numeroTelefono});
-      if (lead){
-        lead.appDate = appointment_date;
-        lead.summary = conversation_summary;
-        if (email && email?.trim() !== ""){
-          lead.email = email;
-        }
-        await lead.save()
-      }
+    if (!noSaveLs) {
+      if (project?.client === "ECP"){
+        console.log("ECP")
+      } else if (project?.client === "Bludental"){
+        console.log("Bludental")
+      } else {
+        console.log("Commerciale")
+        if (numeroTelefono && conversation_summary && first_name){
+          try {
+            await axios.post('http://localhost:8001/chatbolt/save-chatbolt-lead', {
+              numeroTelefono,
+              appointment_date,
+              conversation_summary,
+              email,
+              first_name,
+              last_name,
+              clientId: project.client,
+              canale: "whatsapp",
+              leadId: lead._id,
+            });
+          } catch (error) {
+            console.error('Error sending data to the API', error);
+          }
+          /*const secondDbConnection = await this.connectToSecondDatabase();
+          const Lead = await createLeadModel(secondDbConnection);
+
+          const lead = await Lead.findOne({numeroTelefono: numeroTelefono});
+          if (lead){
+            lead.appDate = appointment_date;
+            lead.summary = conversation_summary;
+            if (email && email?.trim() !== ""){
+              lead.email = email;
+            }
+            await lead.save()
+          }*/
+        }      
+      }      
     }
 
     return lead;
