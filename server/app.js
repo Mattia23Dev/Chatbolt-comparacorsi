@@ -16,7 +16,7 @@ const User = require('./src/models/user.js');
 
 app.use(express.json());
 app.use(cors({
-    origin: ["https://chatboltls.netlify.app", "https://leadsystem-commerciale-test.netlify.app"],
+    origin: ["https://chatboltls.netlify.app", "https://leadsystem-commerciale-test.netlify.app", "http://localhost:3000", "https://leadsystem.software", "https://leadsystem-test.netlify.app"],
 }));
 const server = http.createServer(app);
 init(server);
