@@ -81,7 +81,7 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
                 clientId: clientId,
                 numeroTelefono: phoneDestination,
                 content: personalizedMessage,
-                sender: 'user',
+                sender: 'bot',
                 tag: trigger.tag,
               });
 
