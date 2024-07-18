@@ -168,6 +168,24 @@ exports.saveInfoLeadDb = async (userInfo, projectId, {noSaveLs}) => {
     if (!noSaveLs) {
       if (project?.client === "ECP"){
         console.log("ECP")
+        if (numeroTelefono && conversation_summary && first_name){
+          try {
+            //await axios.post('http://localhost:8001/chatbolt/save-lead-chatbolt', {
+            await axios.post('https://servercpchatbot.up.railway.app/chatbolt/save-lead-chatbolt', {
+              numeroTelefono,
+              appointment_date,
+              conversation_summary,
+              email,
+              first_name,
+              last_name,
+              clientId: project.client,
+              canale: "whatsapp",
+              leadId: lead._id,
+            });
+          } catch (error) {
+            console.error('Error sending data to the API', error);
+          }
+        }
       } else if (project?.client === "Bludental"){
         console.log("Bludental")
       } else {
