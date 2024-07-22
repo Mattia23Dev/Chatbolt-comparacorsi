@@ -86,13 +86,13 @@ router.post('/sendWhatsappMessage', async (req, res) => {
 
 router.post('/get-lead-chat', async (req, res) => {
   try {
-    const { numeroTelefono } = req.body;
+    const { numeroTelefono, leadId } = req.body;
     
     if (!numeroTelefono) {
       return res.status(400).json({ error: 'numeroTelefono is required' });
     }
 
-    const chat = await Chat.findOne({ numeroTelefono });
+    const chat = await Chat.findOne({ leadId: leadId });
 
     if (!chat) {
       return res.status(404).json({ error: 'Chat not found' });
