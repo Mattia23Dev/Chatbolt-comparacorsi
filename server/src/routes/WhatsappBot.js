@@ -39,12 +39,12 @@ const getFormattedDate = () => {
   };
 
   const customPromptSave = (project, messagesContent, userInfoNow) => {
-    console.log(messagesContent)
+    //console.log(messagesContent)
     let prompt = `
-      Messaggi precedenti:
+      - Lista di messaggi scambiati con il cliente fino a questo momento:
       ${messagesContent}
 
-      Informazioni attuali: 
+      - Informazioni attuali che abbiamo dall'utente: 
       ${userInfoNow}
   
       Analizza la conversazione e estrai le seguenti informazioni:
@@ -245,7 +245,7 @@ const waitAction = (node) => {
 
       Messaggi precedenti:
       ${messagesContent}
-      Informazioni Attuali:
+      Informazioni attuali che abbiamo dall'utente:
       ${userInfoNow}
       `
   
