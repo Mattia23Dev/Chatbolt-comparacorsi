@@ -145,7 +145,6 @@ const waitAction = (node) => {
 
   const processFlowNodes = async (nodes, messagesContent, sendTextMessage, project, numeroTelefono, flow, projectId, clientId, io) => {
     let userInfoNow = await Chat.findOne({numeroTelefono, projectId}).select('first_name last_name email numeroTelefono appointment_date conversation_summary');
-    console.log(userInfoNow)
     let userInfo = { numeroTelefono };
     let replyToUser = '';
     console.log("Processando il ciclo dei nodi")
@@ -233,9 +232,21 @@ const waitAction = (node) => {
       const messagesContent = messaggiSalvati.map(message =>
         `${message.sender === 'user' ? 'Utente' : 'Bot'}: ${message.content}`
       ).join('\n');
+      let userInfoNow = await Chat.findOne({numeroTelefono, projectId}).select('first_name last_name email numeroTelefono appointment_date conversation_summary');
+      console.log(userInfoNow)
       const messaggiPrompt = `
-      Messaggi precedenti
+      - I messaggi precedenti contiene tutti i messaggi scambiati con il cliente fino a questo momento. Utilizza questa variabile per avere tutto il contesto per continuare la conversazione con il cliente
+        Le seguente variabili il cliente le ha condivise nella richiesta di supporto.
+        - {{first_name}}: Il nome di battesimo del cliente.
+        - {{last_name}}: il cognome del cliente
+        - {{email}}: email del cliente
+        - {{conversation_summary}}: Riassunto della conversazione
+        - {{appointment_date}}: Data e ora preferita per l'appuntamento (se menzionata)
+
+      Messaggi precedenti:
       ${messagesContent}
+      Informazioni Attuali:
+      ${userInfoNow}
       `
   
       for (const msg of messages) {
