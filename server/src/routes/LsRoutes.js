@@ -8,7 +8,7 @@ const { processTriggerNode } = require('../utils/UtilsFunction');
 router.post('/process-trigger/:userId', async (req, res) => {
     try {
       const userId = req.params.userId;
-      const { action, userInfo } = req.body;
+      const { action, userInfo, ecpId} = req.body;
 
       const project = await Project.findOne({ client: userId });
       if (!project) {
@@ -25,7 +25,7 @@ router.post('/process-trigger/:userId', async (req, res) => {
         return res.status(404).json({ message: 'Flow not found' });
       }
 
-      await processTriggerNode(trigger, userInfo, project.phoneNumberId, flow, project._id, project.client);
+      await processTriggerNode(trigger, userInfo, project.phoneNumberId, flow, project._id, project.client, ecpId);
 
       res.status(200).json({ message: 'Trigger processed successfully' });
     } catch (error) {

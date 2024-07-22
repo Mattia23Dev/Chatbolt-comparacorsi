@@ -46,7 +46,7 @@ const replacePlaceholder = (template, value) => {
     return cleanedNumber;
   };  
 
-exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, projectId, clientId) => {
+exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, projectId, clientId, ecpId) => {
     switch (trigger.actionType) {
       case 'email':
         console.log('Sending Email...');
@@ -71,10 +71,10 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
             }));
           }
         const personalizedMessage = replacePlaceholder(message, userInfo.first_name);
-          console.log(userInfo._id, flow?._id, projectId, clientId, phoneDestination, personalizedMessage, trigger?.tag)
+          console.log(userInfo._id, flow?._id, projectId, clientId, phoneDestination, personalizedMessage, trigger?.tag, ecpId)
           try {
             await saveMessageOrChat({
-                userId: userInfo._id,
+                userId: ecpId,
                 leadId: userInfo._id,
                 flowId: flow?._id,
                 projectId: projectId,

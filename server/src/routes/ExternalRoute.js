@@ -10,7 +10,8 @@ const router = require('express').Router();
 
 router.get("/get-all-chats", async (req, res) => {
     try {
-        let chats = await Chat.find();
+      const { ecpId } = req.query;
+      let chats = await Chat.find({ ecpId });
         res.status(200).json({
           message: 'ok',
           success: true,
