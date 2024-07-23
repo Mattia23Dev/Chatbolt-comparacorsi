@@ -3,7 +3,7 @@ const Flow = require('../models/flow');
 const Lead = require('../models/lead');
 const Project = require('../models/project');
 const Trigger = require('../models/trigger');
-const { saveMessageOrChat } = require('../utils/MongoDB');
+const { saveMessageOrChat, saveMessageOrChatManual } = require('../utils/MongoDB');
 const { defaultFlowData } = require('../utils/UtilsData');
 const { sendTextMessageOutbound, getMessageTemplates } = require('../utils/WhatsappCloudApi');
 const router = require('express').Router();
@@ -63,15 +63,15 @@ router.post('/updateChatFavorite', async (req, res) => {
 
 router.post('/sendWhatsappMessage', async (req, res) => {
   try {
-    const { numeroTelefono, textMessage } = req.body;
+    const { numeroTelefono, textMessage, leadId } = req.body;
     console.log(req.body)
     const response = await sendTextMessageOutbound(numeroTelefono, textMessage)
     if (response === true){
       res.json({ success: true })
 
-      await saveMessageOrChat({
+      await saveMessageOrChatManual({
         userId: '1',
-        leadId: '10',
+        leadId: leadId,
         numeroTelefono: numeroTelefono,
         content: textMessage,
         sender: 'bot',

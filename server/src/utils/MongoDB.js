@@ -75,6 +75,53 @@ exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sen
     }
 }
 
+exports.saveMessageOrChatManual = async ({userId, leadId, numeroTelefono, content, sender, manual, clientId, flowId, projectId, tag}) => {
+
+  if (!userId || !leadId || !numeroTelefono || !content || !sender) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+console.log('Salvando')
+  try {
+    const formattedNumbers = findChatByPhoneNumber(numeroTelefono)
+    let chat = await Chat.findOne({
+      numeroTelefono: { $in: formattedNumbers },
+      leadId: leadId,
+    });
+
+    if (chat) {
+      chat.messages.push({
+        content,
+        sender,
+        timestamp: new Date(),
+        manual: manual ? manual : false,
+      });
+    } else {
+      chat = new Chat({
+        userId,
+        leadId,
+        numeroTelefono,
+        clientId,
+        flowId,
+        projectId,
+        tag: tag ? tag : "",
+        messages: [{
+          content,
+          sender,
+          timestamp: new Date(),
+          manual: manual ? manual : false,
+        }]
+      });
+    }
+
+    await chat.save();
+
+    return chat;
+  } catch (error) {
+    console.error('Error saving message:', error);
+    return 'error'
+  }
+}
+
 exports.getChat = async ({numeroTelefono}) => {
 
   if (!numeroTelefono) {
