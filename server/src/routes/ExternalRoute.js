@@ -30,9 +30,9 @@ router.get("/get-all-chats", async (req, res) => {
 
 router.post('/updateChatStatus', async (req, res) => {
   try {
-    const { numeroTelefono, newStatus } = req.body;
+    const { numeroTelefono, newStatus, leadId } = req.body;
     console.log(req.body)
-    const chat = await Chat.findOne({numeroTelefono: numeroTelefono});
+    const chat = await Chat.findById(leadId);
     if (chat) {
       chat.active = newStatus;
       await chat.save()
@@ -47,8 +47,8 @@ router.post('/updateChatStatus', async (req, res) => {
 
 router.post('/updateChatFavorite', async (req, res) => {
   try {
-    const { numeroTelefono, newStatus } = req.body;
-    const chat = await Chat.findOne({numeroTelefono: numeroTelefono});
+    const { numeroTelefono, newStatus, leadId } = req.body;
+    const chat = await Chat.findById(leadId);
     if (chat) {
       chat.favorite = newStatus;
       await chat.save()
