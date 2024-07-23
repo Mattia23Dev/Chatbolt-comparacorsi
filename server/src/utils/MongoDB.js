@@ -83,10 +83,7 @@ exports.saveMessageOrChatManual = async ({userId, leadId, numeroTelefono, conten
 console.log('Salvando')
   try {
     const formattedNumbers = findChatByPhoneNumber(numeroTelefono)
-    let chat = await Chat.findOne({
-      numeroTelefono: { $in: formattedNumbers },
-      leadId: leadId,
-    });
+    let chat = await Chat.findById(leadId);
 
     if (chat) {
       chat.messages.push({
