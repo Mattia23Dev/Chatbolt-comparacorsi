@@ -3,6 +3,7 @@ import HeaderApp from '../Header/Header';
 import React, { useState, useEffect } from 'react';
 import { UserOutlined, SearchOutlined, DownOutlined } from '@ant-design/icons';
 //import 'antd/dist/antd.css';
+import axios from 'axios';
 import './chat.css';
 
 import ChatList from './ChatList';
@@ -12,7 +13,7 @@ import api from '../../context/ApiContext';
 import { useParams } from 'react-router-dom';
 
 const { Header, Content, Sider } = Layout;
-
+const { Option } = Select
 const Chat = () => {
   const [selectedChat, setSelectedChat] = useState();
   const { projectId } = useParams();
@@ -20,6 +21,9 @@ const Chat = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredChats, setFilteredChats] = useState();
+  const [client, setClients] = useState()
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [selectedClient, setSelectedClient] = useState();
 
   useEffect(() => {
     const fetchChats = async () => {
@@ -28,6 +32,7 @@ const Chat = () => {
         setChats(response.data);
         setFilteredChats(response.data);
         console.log(response.data)
+        fetchClients(response.data)
         setLoading(false);
       } catch (err) {
         setLoading(false);
@@ -54,6 +59,29 @@ const Chat = () => {
     filterChats();
   }, [searchQuery, chats]);
 
+  useEffect(() => {
+    if (selectedClient && chats) {
+      const chatsForSelectedClient = chats?.filter(chat => chat.userId === selectedClient);
+      setFilteredChats(chatsForSelectedClient);
+    } else {
+      setFilteredChats(chats);
+    }
+  }, [selectedClient]);
+
+  const fetchClients = async (chats) => {
+    try {
+      const response = await axios.get('https://leadsystemfunnel-production.up.railway.app/api/get-user-chatbolt');
+      console.log(response.data.user)
+      setClients(response.data.user)
+      const usersWithChats = response.data?.user?.filter(user => 
+        chats?.some(chat => chat.userId === user._id)
+      );
+      setFilteredUsers(usersWithChats);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+    }
+  };
+
   if (loading) return <p>Loading...</p>;
 
   const updateContact = (updatedContact) => {
@@ -73,10 +101,16 @@ const Chat = () => {
       {!loading && <Layout>
         <Sider width={300} className="site-layout-background">
           <div className="chat-list-header">
-            <Select defaultValue="All Conversations" style={{ width: '100%' }}>
-              <Select.Option value="all">All Conversations</Select.Option>
-              <Select.Option value="unread">Unread</Select.Option>
-              <Select.Option value="read">Read</Select.Option>
+            <Select
+                style={{ width: 200, marginBottom: 20 }}
+                placeholder="Seleziona un cliente"
+                onChange={value => setSelectedClient(value)}
+              >
+                {filteredUsers.length > 0 && filteredUsers?.map(user => (
+                  <Option key={user._id} value={user._id}>
+                    {user.nameECP}
+                  </Option>
+                ))}
             </Select>
             <Button icon={<DownOutlined />} />
             <Button icon={<SearchOutlined />} onClick={() => setSearchQuery('')} />

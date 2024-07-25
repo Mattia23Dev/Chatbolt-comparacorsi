@@ -16,6 +16,7 @@ const ChatList = ({ chats, setSelectedChat }) => {
         return `${truncatedMessage}`;
       };
   return (
+    <div className="chat-list-container">
     <List
       itemLayout="horizontal"
       dataSource={chats}
@@ -30,6 +31,7 @@ const ChatList = ({ chats, setSelectedChat }) => {
         </List.Item>
       )}
     />
+    </div>
   );
 };
 

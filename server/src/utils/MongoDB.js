@@ -225,6 +225,7 @@ exports.saveInfoLeadDb = async (userInfo, projectId, {noSaveLs}) => {
               clientId: project.client,
               canale: "whatsapp",
               leadId: lead._id,
+              userId: lead.userId,
             });
           } catch (error) {
             console.error('Error sending data to the API', error);

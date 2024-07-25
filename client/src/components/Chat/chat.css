@@ -22,7 +22,10 @@
     overflow-y: auto;
     height: calc(100vh - 150px);
   }
-  
+  .chat-list-container{
+    height: 83%;
+    overflow-y: auto;
+  }
   .message {
     position: relative;
     max-width: 70%;
