@@ -183,7 +183,10 @@ const waitAction = (node) => {
   const processQueue = async () => {
     const io = getIO();
     console.log('Processando')
-    if (isProcessing || messageQueue.length === 0) return;
+    if (isProcessing || messageQueue.length === 0) {
+      console.log("Ritorno senza fare nulla")
+      return
+    };
     isProcessing = true;
   
     const currentMessages = [...messageQueue];
