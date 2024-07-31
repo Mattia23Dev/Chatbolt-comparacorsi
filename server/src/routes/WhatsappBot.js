@@ -184,6 +184,8 @@ const waitAction = (node) => {
     const io = getIO();
     console.log('Processando')
     if (isProcessing || messageQueue.length === 0) {
+      console.log(isProcessing)
+      console.log(messageQueue.length)
       console.log("Ritorno senza fare nulla")
       return
     };
