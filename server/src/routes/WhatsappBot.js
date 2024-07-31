@@ -95,6 +95,7 @@ const Openai = new OpenAIChat(process.env.OPENAI_API_KEY, "gpt-4o")
 let messageQueue = [];
 let chatTimers = {};
 let isProcessing = false;
+let isProcessingMap = new Map();
 
 const waitAction = (node) => {
     console.log('Aspetto:', node.data.waitingTime)
@@ -180,16 +181,15 @@ const waitAction = (node) => {
     }
   };
 
-  const processQueue = async () => {
+  const processQueue = async (numeroTelefono) => {
     const io = getIO();
-    console.log('Processando')
-    if (isProcessing || messageQueue.length === 0) {
-      console.log(isProcessing)
-      console.log(messageQueue.length)
-      console.log("Ritorno senza fare nulla")
-      return
-    };
-    isProcessing = true;
+    console.log('Processando:', numeroTelefono);
+
+    if (isProcessingMap.get(numeroTelefono) || !messageQueue.find(msg => msg.numeroTelefono === numeroTelefono)) {
+      console.log("Ritorno senza fare nulla per:", numeroTelefono);
+      return;
+    }
+    isProcessingMap.set(numeroTelefono, true);
   
     const currentMessages = [...messageQueue];
     messageQueue = [];
@@ -225,6 +225,7 @@ const waitAction = (node) => {
   
           io.emit('updateChat', chat);
         }
+        isProcessingMap.set(numeroTelefono, false);
         continue;
       }
   
@@ -271,11 +272,9 @@ const waitAction = (node) => {
 
       await processFlowNodes(flow.nodes, messaggiPrompt, messages[0].sendTextMessage, project, numeroTelefono, flow, projectId, clientId, io);
   
-      isProcessing = false;
-      if (messageQueue.length > 0) {
-        processQueue();
-        //if (debounceTimer) clearTimeout(debounceTimer);
-        //debounceTimer = setTimeout(processQueue, 20000); // Questo è un fallback generale, non legato a un flusso specifico
+      isProcessingMap.set(numeroTelefono, false);
+      if (messageQueue.find(msg => msg.numeroTelefono === numeroTelefono)) {
+        processQueue(numeroTelefono);
       }
     }
   };
@@ -321,7 +320,7 @@ const waitAction = (node) => {
             }
 
             chatTimers[numeroTelefono] = setTimeout(() => {
-                processQueue();
+                processQueue(numeroTelefono);
             }, waitingTime * 1000);
           }
         }
