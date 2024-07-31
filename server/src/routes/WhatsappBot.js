@@ -187,6 +187,7 @@ const waitAction = (node) => {
 
     if (isProcessingMap.get(numeroTelefono) || !messageQueue.find(msg => msg.numeroTelefono === numeroTelefono)) {
       console.log("Ritorno senza fare nulla per:", numeroTelefono);
+      console.log(isProcessingMap.get(numeroTelefono))
       return;
     }
     isProcessingMap.set(numeroTelefono, true);
