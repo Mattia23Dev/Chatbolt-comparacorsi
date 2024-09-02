@@ -28,9 +28,9 @@ exports.extractJSONFromOpenAIResponse = (response) => {
     }
 }
 
-const replacePlaceholder = (template, value) => {
-    return template.replace('{{1}}', value);
-  };
+const replacePlaceholder = (template, values) => {
+  return template.replace(/{{(\d+)}}/g, (match, p1) => values[p1] || '');
+};
 
   const formatPhoneNumber = (numeroTelefono) => {
     let cleanedNumber = numeroTelefono.replace(/[\s-()]/g, '');
@@ -71,6 +71,10 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
               text: userInfo[param] || '',
             }));
           }
+          const values = {};
+          paramsTrigger.forEach((param, index) => {
+            values[index + 1] = userInfo[param] || ''; // Assegna i valori in modo dinamico usando l'indice + 1 come chiave
+          });
           /*
           if (hasParameters) {
             params = template.components.map((component, index) => ({
@@ -79,7 +83,7 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
             }));
           }
           */
-        const personalizedMessage = replacePlaceholder(message, userInfo.first_name);
+        const personalizedMessage = replacePlaceholder(message, values);
           console.log(userInfo._id, flow?._id, projectId, clientId, phoneDestination, personalizedMessage, trigger?.tag, ecpId)
           try {
             await saveMessageOrChat({
