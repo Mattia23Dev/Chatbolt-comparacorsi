@@ -371,7 +371,6 @@ module.exports = class WhatsappCloudApi {
 };
 
 module.exports.sendTemplateMessage = async (templateName, languageCode, parameters, phoneNumberId, phoneDestination) => {
-    console.log(parameters)
     try {
         const response = await axios({
             method: 'POST',

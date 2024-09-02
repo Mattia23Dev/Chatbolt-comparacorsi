@@ -337,4 +337,3 @@ const waitAction = (node) => {
       res.status(500).send();
     }
   });
-  

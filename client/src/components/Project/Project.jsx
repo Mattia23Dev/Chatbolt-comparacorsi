@@ -177,7 +177,7 @@ const TriggerForm = ({ visible, onCancel, onSave, triggerData, templates, flows 
   const handleSave = async () => {
     const values = {
       ...formData,
-      parameters,
+      params: parameters,
       selectedComponent,
       selectedTemplate
     };
@@ -206,6 +206,7 @@ const TriggerForm = ({ visible, onCancel, onSave, triggerData, templates, flows 
     const newParameters = [...parameters];
     newParameters[index] = event.target.value;
     setParameters(newParameters);
+    console.log(newParameters)
   };
 
   const handleActionTypeChange = (value) => {

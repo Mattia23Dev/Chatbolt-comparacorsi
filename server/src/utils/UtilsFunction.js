@@ -58,6 +58,7 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
         const templateName = trigger.templateWhatsapp.name;
         const template = trigger.templateWhatsapp;
         const message = trigger?.selectedComponent?.text
+        const paramsTrigger = trigger?.params;
         const phoneDestination = formatPhoneNumber(userInfo.numeroTelefono);
         const hasParameters = template.components.some(component =>
             component.type === 'BODY' && /{{\d+}}/.test(component.text)
@@ -65,11 +66,19 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
         
         let params = [];
           if (hasParameters) {
-            params = template.components.map((component, index) => ({
+            params = paramsTrigger.map(param => ({
               type: 'text',
-              text: `${userInfo.first_name}`,
+              text: userInfo[param] || '',
             }));
           }
+          /*
+          if (hasParameters) {
+            params = template.components.map((component, index) => ({
+              type: 'text',
+              text: ${userInfo.first_name},
+            }));
+          }
+          */
         const personalizedMessage = replacePlaceholder(message, userInfo.first_name);
           console.log(userInfo._id, flow?._id, projectId, clientId, phoneDestination, personalizedMessage, trigger?.tag, ecpId)
           try {
@@ -87,7 +96,7 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
 
             await saveInfoLeadDb(userInfo, projectId, {noSaveLs: true})
             
-            await sendTemplateMessage(templateName, template?.language, params, phoneNumberId, phoneDestination);            
+            await sendTemplateMessage(templateName, template?.language, params, phoneNumberId, phoneDestination);
           } catch (error) {
             console.error(error)
           }
@@ -98,3 +107,13 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
         console.log(`Unknown action type: ${trigger.actionType}`);
     }
   };
+  const params = [
+    {
+      type: 'text',
+      text: `Andrea`,
+    },
+    {type: "text", text: "Mattia"},
+    {type: "text", text: "3313869850"}
+  ]
+  
+  //sendTemplateMessage("messaggio_outbound_nome_orientatore", "it", params, "356948087500420", "393382857716")
