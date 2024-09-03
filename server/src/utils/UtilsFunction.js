@@ -76,14 +76,7 @@ exports.processTriggerNode = async (trigger, userInfo, phoneNumberId, flow, proj
           paramsTrigger.forEach((param, index) => {
             values[index + 1] = userInfo[param] || ''; // Assegna i valori in modo dinamico usando l'indice + 1 come chiave
           });
-          /*
-          if (hasParameters) {
-            params = template.components.map((component, index) => ({
-              type: 'text',
-              text: ${userInfo.first_name},
-            }));
-          }
-          */
+          
         const personalizedMessage = replacePlaceholder(message, values);
           console.log(userInfo._id, flow?._id, projectId, clientId, phoneDestination, personalizedMessage, trigger?.tag, ecpId)
           try {

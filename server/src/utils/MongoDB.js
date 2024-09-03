@@ -51,6 +51,7 @@ exports.saveMessageOrChat = async ({userId, leadId, numeroTelefono, content, sen
       } else {
         chat = new Chat({
           userId,
+          active: userId === "6620f0dea23fbcdf6f637c82" ? false : true,
           leadId,
           numeroTelefono,
           clientId,

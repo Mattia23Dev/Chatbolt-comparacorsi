@@ -229,7 +229,7 @@ const waitAction = (node) => {
         isProcessingMap.set(numeroTelefono, false);
         continue;
       }
-  
+
       let messaggiSalvati = existingChat && existingChat.messages ? existingChat.messages : [];
   
       messages.forEach(msg => {
