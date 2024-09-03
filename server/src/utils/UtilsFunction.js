@@ -29,7 +29,8 @@ exports.extractJSONFromOpenAIResponse = (response) => {
 }
 
 const replacePlaceholder = (template, values) => {
-  return template.replace(/{{(\d+)}}/g, (match, p1) => values[p1] || '');
+  return template.replace(/{{(\d+)}}/g, (match, p1) => values[p1] || '')
+                 .replace(/\*([^*]+)\*/g, '$1');
 };
 
   const formatPhoneNumber = (numeroTelefono) => {
