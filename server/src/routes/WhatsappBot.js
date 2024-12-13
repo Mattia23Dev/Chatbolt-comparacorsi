@@ -108,7 +108,7 @@ const waitAction = (node) => {
   };
   
   const responseLLM = async (node, messagesContent) => {
-    console.log('Chiamo openai per rispondere')
+    console.log('Chiamo openai per rispondere', node.data.prompt)
     const replyToUser = await Openai.getOpenAIResponse(messagesContent, node.data.prompt);
     return replyToUser;
   };
