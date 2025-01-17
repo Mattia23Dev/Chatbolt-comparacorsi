@@ -5,7 +5,7 @@ const Project = require('../models/project');
 const Trigger = require('../models/trigger');
 const { saveMessageOrChat, saveMessageOrChatManual } = require('../utils/MongoDB');
 const { defaultFlowData } = require('../utils/UtilsData');
-const { sendTextMessageOutbound, getMessageTemplates } = require('../utils/WhatsappCloudApi');
+const { sendTextMessageOutbound, getMessageTemplates, sendTextMessageOutboundMachingo } = require('../utils/WhatsappCloudApi');
 const router = require('express').Router();
 
 router.get("/get-all-chats", async (req, res) => {
@@ -66,6 +66,30 @@ router.post('/sendWhatsappMessage', async (req, res) => {
     const { numeroTelefono, textMessage, leadId } = req.body;
     console.log(req.body)
     const response = await sendTextMessageOutbound(numeroTelefono, textMessage)
+    if (response === true){
+      res.json({ success: true })
+
+      await saveMessageOrChatManual({
+        userId: '1',
+        leadId: leadId,
+        numeroTelefono: numeroTelefono,
+        content: textMessage,
+        sender: 'bot',
+        manual: true,
+      });
+    } else {
+      res.json({ success: false })
+    }
+  } catch (error) {
+    console.error(error)
+  }
+})
+
+router.post('/sendWhatsappMessageMachingo', async (req, res) => {
+  try {
+    const { numeroTelefono, textMessage, leadId } = req.body;
+    console.log(req.body)
+    const response = await sendTextMessageOutboundMachingo(numeroTelefono, textMessage)
     if (response === true){
       res.json({ success: true })
 

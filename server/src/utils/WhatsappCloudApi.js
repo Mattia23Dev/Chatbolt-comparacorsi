@@ -404,12 +404,40 @@ module.exports.sendTemplateMessage = async (templateName, languageCode, paramete
     }
 }
 
-module.exports.sendTextMessageOutbound = async (numeroTelefono, messageText) => {
+module.exports.sendTextMessageOutbound = async (numeroTelefono, messageText, phoneNumberId, token) => {
     try {
         const response = await axios({
             method: 'POST',
             //url: `https://graph.facebook.com/${this.graphApiVersion}/${this.senderBusinessPhoneId}/messages?access_token=${this.bearerToken}`,
             url: `https://graph.facebook.com/v20.0/356948087500420/messages?access_token=${process.env.META_TOKEN}`,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data: {
+                messaging_product: 'whatsapp', //this.messagingProduct,
+                recipient_type: 'individual',
+                to: numeroTelefono ,//this.recipientPhoneNumber,
+                type: 'text',
+                text: {
+                    preview_url: false,
+                    body: messageText
+                },
+            },
+        });
+        console.log('Message sent successfully:', response.data);
+        return true
+    } catch (error) {
+        console.error('Error sending message:', error.response ? error.response.data : error.message);
+        return false
+    }
+}
+
+module.exports.sendTextMessageOutboundMachingo = async (numeroTelefono, messageText, phoneNumberId, token) => {
+    try {
+        const response = await axios({
+            method: 'POST',
+            //url: `https://graph.facebook.com/${this.graphApiVersion}/${this.senderBusinessPhoneId}/messages?access_token=${this.bearerToken}`,
+            url: `https://graph.facebook.com/v20.0/527305717133822/messages?access_token=EAAhp9Pzv0l4BO11Q0n7Ti6vnH56ZBibtY2VpZABU6YpXLiqBkTagygDG5pGdSOxMThdaZAXiYP3HZC1sLRXh1VampaVQBozDDb1Fxk4QJtQCAYwJ59WcU9AKSLYfKUqR3PIaBuP1eFQcXPQ53AxBJTYfYeLf3uKCrvLBmptlMFPkcwZCWNOcQ80SZC`,
             headers: {
                 'Content-Type': 'application/json'
             },
